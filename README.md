@@ -20,12 +20,12 @@ To compile, make sure that your g++ version is at least 10.1 and run:
 
 To change the underlying SAT solver from IntelSAT to Glucose, edit code/Makefile as follows:
 
-  # Glucose4_1
+  #Glucose4_1
   SOLVERNAME = "Glucose4_1"
   SOLVERDIR  = glucose4.1
   NSPACE     = Glucose
   
-  # IntelSATSolver
+  #IntelSATSolver
   #SOLVERNAME = "IntelSATSolver"
   #SOLVERDIR  = topor
   #NSPACE     = ToporWrapper
