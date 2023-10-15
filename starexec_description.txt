@@ -1,0 +1,1 @@
+TT_Open_WBO_Inc_23: an anytime MaxSAT solver by Alexander Nadel, alexander.nadel@cs.tau.ac.il, submitted to all the four incomplete tracks of MaxSAT Evaluation 2023.
