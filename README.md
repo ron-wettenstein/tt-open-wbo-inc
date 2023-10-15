@@ -7,7 +7,7 @@ When using TT-Open-WBO-Inc, please cite the following paper:
 
 The license is in code/LICENSE.
 
-To compile:
+To compile, make sure that your g++ version is at least 10.1 and run:
 
 cd code
 make rs -j
