@@ -838,6 +838,7 @@ void LinearSUClustering::bmoSearch(){
       {
         maxsat_formula->using_nuwls = true;
         NUWLS nuwls_solver;
+        nuwls_solver.problem_weighted = 1;
         build_nuwls_clause_structure();
 
         nuwls_solver.build_instance(maxsat_formula->nuwls_nvars, maxsat_formula->nuwls_nclauses, maxsat_formula->nuwls_topclauseweight,
@@ -857,8 +858,9 @@ void LinearSUClustering::bmoSearch(){
         }
         
         nuwls_solver.init(init_solu);
+        nuwls_solver.opt_unsat_weight = currCost;
         start_timing(); 
-        int time_limit_for_ls = NUWLS_TIME_LIMIT;
+        int time_limit_for_ls = nuwls_solver.NUWLS_TIME_LIMIT;
         int step = 0;
         // if (nuwls_solver.if_using_neighbor)
         {
@@ -871,7 +873,7 @@ void LinearSUClustering::bmoSearch(){
                 nuwls_solver.best_soln_feasible = 1;
                 nuwls_solver.local_soln_feasible = 1;
                 nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-                time_limit_for_ls = get_runtime() + NUWLS_TIME_LIMIT;
+                time_limit_for_ls = get_runtime() + nuwls_solver.NUWLS_TIME_LIMIT;
 
                 nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
                 cout << "o " << nuwls_solver.opt_unsat_weight << endl;
@@ -883,12 +885,12 @@ void LinearSUClustering::bmoSearch(){
                   else
                     solver->model[v - 1] = l_True;
                 }
-                best_cost = nuwls_solver.opt_unsat_weight;
-                uint64_t oriCost = computeOriginalCost(solver->model);
+                //best_cost = nuwls_solver.opt_unsat_weight;
+                uint64_t oriCost = nuwls_solver.opt_unsat_weight; // computeOriginalCost(solver->model);
                 // cout << "o " << oriCost << endl;
                 saveModel(solver->model, oriCost);
                 // solver->model.copyTo(best_model);
-
+				cout << "o " << nuwls_solver.opt_unsat_weight << endl;
                 if (nuwls_solver.opt_unsat_weight == 0)
                   break;
               }

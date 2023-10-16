@@ -19,10 +19,11 @@ using namespace std;
 #define mypop(stack) stack[--stack##_fill_pointer]
 #define mypush(item, stack) stack[stack##_fill_pointer++] = item
 
-/* Take from SATLike
+/*
 const float MY_RAND_MAX_FLOAT = 10000000.0;
 const int MY_RAND_MAX_INT = 10000000;
 const float BASIC_SCALE = 0.0000001; // 1.0f/MY_RAND_MAX_FLOAT;
+
 // Define a data structure for a literal.
 struct lit
 {
@@ -31,9 +32,8 @@ struct lit
     bool sense;     // is 1 for true literals, 0 for false literals.
 };
 */
-
 const int USING_NEIGHBOR_MODE = 3;   // 1. using 2. don't use 3. depends on ins
-const int NUWLS_TIME_LIMIT = 15;
+
 
 struct clauselit
 {
@@ -57,8 +57,8 @@ static double get_runtime()
 static void start_timing()
 {
     times(&start_time);
-}*/
-
+}
+*/
 class NUWLS
 {
 public:
@@ -78,7 +78,6 @@ public:
 
     // steps and time
     int tries;
-    int max_tries;
     int max_flips;
     int max_non_improve_flip;
     int step;
@@ -181,13 +180,13 @@ public:
     float soft_smooth_probability;
     double s_inc;
     long long total_soft_length;
+    int NUWLS_TIME_LIMIT;
 
     // function used in algorithm
     void build_neighbor_relation();
     void allocate_memory();
     bool verify_sol();
     bool verify_goodvarstack(int flipvar);
-    void increase_weights();
     void smooth_weights();
     void hard_smooth_weights();
     void soft_smooth_weights();
@@ -202,6 +201,12 @@ public:
     void update_goodvarstack1(int flipvar);
     void update_goodvarstack2(int flipvar);
     int pick_var();
+    long long floorToPowerOfTen(double x);
+    long long closestPowerOfTen(double num);
+
+    void soft_increase_weights_partial();
+    void soft_increase_weights_not_partial();
+    int *soft_clause_num_index;
 
     NUWLS();
     void settings();
@@ -216,42 +221,63 @@ public:
 
 inline NUWLS::NUWLS() {}
 
+inline long long NUWLS::closestPowerOfTen(double num)
+{
+    if (num <= 1)
+        return 1;
+
+    int n = ceil(log10(num));
+    int x = round(num / pow(10, n - 1));
+
+    if (x == 10)
+    {
+        x = 1;
+        n += 1;
+    }
+    return pow(10, n - 1) * x;
+}
+
+inline long long NUWLS::floorToPowerOfTen(double x)
+{
+    if (x <= 0.0) // if x <= 0, then return 0.
+    {
+        return 0;
+    }
+    int exponent = (int)log10(x);
+    double powerOfTen = pow(10, exponent);
+    long long result = (long long)powerOfTen;
+    if (x < result)
+    {
+        result /= 10;
+    }
+    return result;
+}
+
 inline void NUWLS::settings()
 {
     local_soln_feasible = 1;
+    NUWLS_TIME_LIMIT = 15;
     if (1 == problem_weighted)
     {
-        max_tries = 100000000;
-        max_flips = 200000000;
+        cout << "c problem weighted = 1" << endl;
+        max_flips = 10000000;
         max_non_improve_flip = 10000000;
         large_clause_count_threshold = 0;
         soft_large_clause_count_threshold = 0;
 
-        if (0 == num_hclauses)
+        if (num_hclauses > 0) // weighted partial
         {
-            softclause_weight_threshold = 0;
-            soft_smooth_probability = 1E-3;
-            hd_count_threshold = 22;
-            rdprob = 0.036;
-            rwprob = 0.48;
-            s_inc = 1.0;
-            for (int c = 0; c < num_clauses; c++)
-            {
-                tuned_org_clause_weight[c] = org_clause_weight[c];
-            }
-        }
-        else
-        {
-            coe_soft_clause_weight = 1000;
+            NUWLS_TIME_LIMIT = 20;
+            h_inc = 5;
+            s_inc = 6;
+            // coe_soft_clause_weight = 1000;
             hd_count_threshold = 50;
             rdprob = 0.036;
             rwprob = 0.48;
             soft_smooth_probability = 2E-6;
             smooth_probability = 2E-5;
-            h_inc = 10;
-            s_inc = 3;
             softclause_weight_threshold = 50;
-            coe_tuned_weight = (double)(coe_soft_clause_weight) / double(top_clause_weight - 1) * (double)(num_sclauses);
+            coe_tuned_weight = 1.0 / (double(top_clause_weight - 1) / (double)(num_sclauses));
             for (int c = 0; c < num_clauses; c++)
             {
                 if (org_clause_weight[c] != top_clause_weight)
@@ -259,19 +285,30 @@ inline void NUWLS::settings()
                     tuned_org_clause_weight[c] = (double)org_clause_weight[c] * coe_tuned_weight;
                 }
             }
-            if (total_soft_length / num_sclauses > 100)
+        }
+        else // weighted not partial
+        {
+            softclause_weight_threshold = 10;
+            s_inc = 3.0;
+            NUWLS_TIME_LIMIT = 25;
+            soft_smooth_probability = 1E-3;
+            hd_count_threshold = 22;
+            rdprob = 0.036;
+            rwprob = 0.48;
+
+            coe_soft_clause_weight = 1000;
+            coe_tuned_weight = ((double)coe_soft_clause_weight) / ((double(top_clause_weight - 1) / (double)(num_sclauses)));
+            // cout << "c coe_tuned_weight: " << coe_tuned_weight << endl;
+            for (int c = 0; c < num_clauses; c++)
             {
-                h_inc = 300;
-                s_inc = 100;
-                // softclause_weight_threshold = 1000;
+                tuned_org_clause_weight[c] = org_clause_weight[c] * coe_tuned_weight;
             }
         }
     }
     else
     {
         cout << "c problem weighted = 0" << endl;
-        max_tries = 100000000;
-        max_flips = 200000000;
+        max_flips = 10000000;
         max_non_improve_flip = 10000000;
 
         large_clause_count_threshold = 0;
@@ -280,24 +317,26 @@ inline void NUWLS::settings()
         h_inc = 1;
         s_inc = 1;
 
-        if (0 == num_hclauses)
+        if (num_hclauses > 0) // unweighted partial
         {
+            hd_count_threshold = 50;
+            coe_soft_clause_weight = 1;
+            rdprob = 0.079;
+            rwprob = 0.087;
+            soft_smooth_probability = 1E-5;
+            softclause_weight_threshold = 500;
+            smooth_probability = 1E-4;
+        }
+        else // unweighted not partial
+        {
+            s_inc = 1;
+            NUWLS_TIME_LIMIT = 15;
             hd_count_threshold = 94;
             coe_soft_clause_weight = 397;
             rdprob = 0.007;
             rwprob = 0.047;
             soft_smooth_probability = 0.002;
             softclause_weight_threshold = 550;
-        }
-        else
-        {
-            hd_count_threshold = 50;
-            coe_soft_clause_weight = 10;
-            rdprob = 0.079;
-            rwprob = 0.087;
-            soft_smooth_probability = 1E-5;
-            softclause_weight_threshold = 500;
-            smooth_probability = 1E-4;
         }
     }
 }
@@ -306,14 +345,20 @@ inline void NUWLS::allocate_memory()
 {
     int malloc_var_length = num_vars + 5;
     int malloc_clause_length = num_clauses + 5;
+    int i = 0;
 
     var_lit = new varlit *[malloc_var_length];
     var_lit_count = new int[malloc_var_length];
     // clause_lit = new lit *[malloc_clause_length];
     // clause_lit_count = new int[malloc_clause_length];
-
     score = new double[malloc_var_length];
     var_neighbor = new int *[malloc_var_length];
+    for (i = 0; i < malloc_var_length; i++)
+    {
+        var_lit[i] = NULL;
+        var_neighbor[i] = NULL;
+        var_lit_count[i] = 0;
+    }
     var_neighbor_count = new int[malloc_var_length];
     time_stamp = new int[malloc_var_length];
     neighbor_flag = new int[malloc_var_length];
@@ -346,6 +391,7 @@ inline void NUWLS::allocate_memory()
     large_weight_clauses = new int[malloc_clause_length];
     soft_large_weight_clauses = new int[malloc_clause_length];
     already_in_soft_large_weight_stack = new int[malloc_clause_length];
+    soft_clause_num_index = new int[malloc_clause_length];
 
     // best_array = new int[malloc_var_length];
     // temp_lit = new int[malloc_var_length];
@@ -408,7 +454,7 @@ inline void NUWLS::free_memory()
 
     // delete[] best_array;
     // delete[] temp_lit;
-
+    delete[] soft_clause_num_index;
     delete[] tuned_org_clause_weight;
 }
 
@@ -476,15 +522,7 @@ inline void NUWLS::build_instance(int numVars, int numClauses, unsigned long lon
     allocate_memory();
     int v, c;
 
-    for (v = 1; v <= num_vars; ++v)
-    {
-        var_lit_count[v] = 0;
-        var_lit[v] = NULL;
-        var_neighbor[v] = NULL;
-    }
-
     int cur_lit;
-    problem_weighted = 0;
     partial = 0;
     num_hclauses = num_sclauses = 0;
     max_clause_length = 0;
@@ -506,11 +544,9 @@ inline void NUWLS::build_instance(int numVars, int numClauses, unsigned long lon
 
         if (org_clause_weight[i] != top_clause_weight)
         {
-            if (org_clause_weight[i] != 1)
-                problem_weighted = 1;
             total_soft_weight += org_clause_weight[i];
-            num_sclauses++;
-            total_soft_length += clause_lit_count[i];
+            // total_soft_length += clause_lit_count[i];
+            soft_clause_num_index[num_sclauses++] = i;
         }
         else
         {
@@ -520,11 +556,6 @@ inline void NUWLS::build_instance(int numVars, int numClauses, unsigned long lon
         // if (clause_lit_count[i] == 1)
         //     unit_clause[unit_clause_count++] = clause_lit[i][0];
         total_lit_count += clause_lit_count[i];
-        if (clause_lit_count[i] > max_clause_length)
-            max_clause_length = clause_lit_count[i];
-
-        if (clause_lit_count[i] < min_clause_length)
-            min_clause_length = clause_lit_count[i];
     }
 
     double total_memory = 0;
@@ -536,8 +567,8 @@ inline void NUWLS::build_instance(int numVars, int numClauses, unsigned long lon
         total_lit_count += (var_lit_count[v] + 1);
         var_lit_count[v] = 0; // reset to 0, for build up the array
     }
-    cout << "c total_lit_count " << total_lit_count;
-    cout << endl;
+    //cout << "c total_lit_count " << total_lit_count;
+    //cout << endl;
     // scan all clauses to build up var literal arrays
     for (int i = 0; i < num_clauses; ++i)
     {
@@ -558,10 +589,7 @@ inline void NUWLS::build_instance(int numVars, int numClauses, unsigned long lon
 
     cout << "c build instime is " << get_runtime() << endl;
 
-    if (USING_NEIGHBOR_MODE == 2 ||
-        (USING_NEIGHBOR_MODE == 3 &&
-         (get_runtime() > 1.0 || num_clauses > 10000000)) &&
-            0 == problem_weighted)
+    if (USING_NEIGHBOR_MODE == 2 || 1 == problem_weighted || (USING_NEIGHBOR_MODE == 3 && ((get_runtime() > 1.0 || num_clauses > 10000000) && 0 == problem_weighted)))
     {
         if_using_neighbor = false;
     }
@@ -582,7 +610,21 @@ inline void NUWLS::init(vector<int> &init_solution)
     // Initialize clause information
     if (1 == problem_weighted)
     {
-        if (0 == num_hclauses)
+        if (num_hclauses > 0) // weighted partial
+        {
+            for (int c = 0; c < num_clauses; c++)
+            {
+                already_in_soft_large_weight_stack[c] = 0;
+
+                if (org_clause_weight[c] == top_clause_weight)
+                    clause_weight[c] = 1;
+                else
+                {
+                    clause_weight[c] = 0;
+                }
+            }
+        }
+        else // weighted not partial
         {
             for (int c = 0; c < num_clauses; c++)
             {
@@ -595,27 +637,24 @@ inline void NUWLS::init(vector<int> &init_solution)
                 }
             }
         }
-        else
+    }
+    else
+    {
+        if (num_hclauses > 0) // unweighted partial
+        {
+            for (int c = 0; c < num_clauses; c++)
+            {
+                clause_weight[c] = 1;
+            }
+        }
+        else // unweighted not partial
         {
             for (int c = 0; c < num_clauses; c++)
             {
                 already_in_soft_large_weight_stack[c] = 0;
-                clause_weight[c] = 1.0;
-            }
-        }
-    }
-    else
-    {
-        for (int c = 0; c < num_clauses; c++)
-        {
-            already_in_soft_large_weight_stack[c] = 0;
 
-            if (org_clause_weight[c] == top_clause_weight)
-                clause_weight[c] = 1;
-            else
-            {
                 clause_weight[c] = coe_soft_clause_weight;
-                if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
+                if (clause_weight[c] > 1 && already_in_soft_large_weight_stack[c] == 0)
                 {
                     already_in_soft_large_weight_stack[c] = 1;
                     soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
@@ -638,8 +677,6 @@ inline void NUWLS::init(vector<int> &init_solution)
         for (int v = 1; v <= num_vars; v++)
         {
             cur_soln[v] = init_solution[v];
-            if (cur_soln[v] != 0 && cur_soln[v] != 1)
-                cur_soln[v] = rand() % 2;
             time_stamp[v] = 0;
         }
     }
@@ -689,7 +726,6 @@ inline void NUWLS::init(vector<int> &init_solution)
     score_change_stack_fill_pointer = 0;
     for (int v = 1; v <= num_vars; v++)
     {
-        // if_score_change[v] = false;
         if (score[v] > 0)
         {
             already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -697,52 +733,6 @@ inline void NUWLS::init(vector<int> &init_solution)
         }
         else
             already_in_goodvar_stack[v] = -1;
-    }
-}
-
-inline void NUWLS::increase_weights()
-{
-    int i, c, v;
-    for (i = 0; i < hardunsat_stack_fill_pointer; ++i)
-    {
-        c = hardunsat_stack[i];
-        clause_weight[c] += h_inc;
-
-        if (clause_weight[c] == (h_inc + 1))
-            large_weight_clauses[large_weight_clauses_count++] = c;
-
-        for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
-        {
-            score[v] += h_inc;
-            if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
-            {
-                already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
-                mypush(v, goodvar_stack);
-            }
-        }
-    }
-    for (i = 0; i < softunsat_stack_fill_pointer; ++i)
-    {
-        c = softunsat_stack[i];
-        if (clause_weight[c] > softclause_weight_threshold)
-            continue;
-        else
-            clause_weight[c]++;
-
-        if (clause_weight[c] > 1 && already_in_soft_large_weight_stack[c] == 0)
-        {
-            already_in_soft_large_weight_stack[c] = 1;
-            soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
-        }
-        for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
-        {
-            score[v]++;
-            if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
-            {
-                already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
-                mypush(v, goodvar_stack);
-            }
-        }
     }
 }
 
@@ -946,42 +936,158 @@ inline void NUWLS::soft_smooth_weights()
     return;
 }
 
-/*inline void NUWLS::update_clause_weights()
+inline void NUWLS::soft_increase_weights_partial()
 {
-    if (((rand() % MY_RAND_MAX_INT) * BASIC_SCALE) < smooth_probability && large_weight_clauses_count > large_clause_count_threshold)
+    int i, c, v;
+
+    if (1 == problem_weighted)
     {
-        smooth_weights();
+        for (i = 0; i < num_sclauses; ++i)
+        {
+            c = soft_clause_num_index[i];
+            clause_weight[c] += tuned_org_clause_weight[c];
+            if (sat_count[c] <= 0) // unsat
+            {
+                for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+                {
+                    score[v] += tuned_org_clause_weight[c];
+                    if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+                    {
+                        already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
+                        mypush(v, goodvar_stack);
+                    }
+                }
+            }
+            else if (sat_count[c] < 2) // sat
+            {
+                for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+                {
+                    if (p->sense == cur_soln[v])
+                    {
+                        score[v] -= tuned_org_clause_weight[c];
+                        if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
+                        {
+                            int index = already_in_goodvar_stack[v];
+                            int last_v = mypop(goodvar_stack);
+                            goodvar_stack[index] = last_v;
+                            already_in_goodvar_stack[last_v] = index;
+                            already_in_goodvar_stack[v] = -1;
+                        }
+                    }
+                }
+            }
+        }
     }
     else
     {
-        increase_weights();
+        for (i = 0; i < num_sclauses; ++i)
+        {
+            c = soft_clause_num_index[i];
+            clause_weight[c] += s_inc;
+
+            if (sat_count[c] <= 0) // unsat
+            {
+                for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+                {
+                    score[v] += s_inc;
+                    if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+                    {
+                        already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
+                        mypush(v, goodvar_stack);
+                    }
+                }
+            }
+            else if (sat_count[c] < 2) // sat
+            {
+                for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+                {
+                    if (p->sense == cur_soln[v])
+                    {
+                        score[v] -= s_inc;
+                        if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
+                        {
+                            int index = already_in_goodvar_stack[v];
+                            int last_v = mypop(goodvar_stack);
+                            goodvar_stack[index] = last_v;
+                            already_in_goodvar_stack[last_v] = index;
+                            already_in_goodvar_stack[v] = -1;
+                        }
+                    }
+                }
+            }
+        }
     }
-}*/
+    return;
+}
+
+inline void NUWLS::soft_increase_weights_not_partial()
+{
+    int i, c, v;
+
+    if (1 == problem_weighted)
+    {
+        for (i = 0; i < softunsat_stack_fill_pointer; ++i)
+        {
+            c = softunsat_stack[i];
+            if (clause_weight[c] >= tuned_org_clause_weight[c] + softclause_weight_threshold)
+                continue;
+            else
+                clause_weight[c] += s_inc;
+
+            if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
+            {
+                already_in_soft_large_weight_stack[c] = 1;
+                soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
+            }
+            for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+            {
+                score[v] += s_inc;
+                if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+                {
+                    already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
+                    mypush(v, goodvar_stack);
+                }
+            }
+        }
+    }
+    else
+    {
+        for (i = 0; i < softunsat_stack_fill_pointer; ++i)
+        {
+            c = softunsat_stack[i];
+            if (clause_weight[c] >= coe_soft_clause_weight + softclause_weight_threshold)
+                continue;
+            else
+                clause_weight[c] += s_inc;
+
+            if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
+            {
+                already_in_soft_large_weight_stack[c] = 1;
+                soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
+            }
+            for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+            {
+                score[v] += s_inc;
+                if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+                {
+                    already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
+                    mypush(v, goodvar_stack);
+                }
+            }
+        }
+    }
+    return;
+}
+
 inline void NUWLS::update_clause_weights()
 {
     if (num_hclauses > 0)
     {
         // update hard clause weight
-        if (1 == local_soln_feasible && ((rand() % MY_RAND_MAX_INT) * BASIC_SCALE) < smooth_probability && large_weight_clauses_count > large_clause_count_threshold)
+        hard_increase_weights();
+        if (0 == hard_unsat_nb)
         {
-            hard_smooth_weights();
-        }
-        else
-        {
-            hard_increase_weights();
-        }
-
-        // update soft clause weight
-        if (soft_unsat_weight >= opt_unsat_weight)
-        {
-            if (((rand() % MY_RAND_MAX_INT) * BASIC_SCALE) < soft_smooth_probability && soft_large_weight_clauses_count > soft_large_clause_count_threshold)
-            {
-                soft_smooth_weights();
-            }
-            else if (0 == hard_unsat_nb)
-            {
-                soft_increase_weights();
-            }
+            soft_increase_weights_partial();
         }
     }
     else
@@ -992,7 +1098,7 @@ inline void NUWLS::update_clause_weights()
         }
         else
         {
-            soft_increase_weights();
+            soft_increase_weights_not_partial();
         }
     }
 }
@@ -1313,81 +1419,7 @@ inline void NUWLS::flip2(int flipvar)
     score[flipvar] = -org_flipvar_score;
     update_goodvarstack1(flipvar);
 }
-/*
-inline void NUWLS::flip2(int flipvar)
-{
-    int i, v, c;
-    int index;
-    lit *clause_c;
 
-    score_change_stack_fill_pointer = 0;
-    double org_flipvar_score = score[flipvar];
-    cur_soln[flipvar] = 1 - cur_soln[flipvar];
-
-    for (i = 0; i < var_lit_count[flipvar]; ++i)
-    {
-        c = var_lit[flipvar][i].clause_num;
-        clause_c = clause_lit[c];
-
-        if (cur_soln[flipvar] == var_lit[flipvar][i].sense)
-        {
-            ++sat_count[c];
-            if (sat_count[c] == 2) // sat_count from 1 to 2
-            {
-                v = sat_var[c];
-                score[v] += clause_weight[c];
-                if (score[v] > 0 && score[v] - clause_weight[c] <= 0)
-                {
-                    score_change_stack[score_change_stack_fill_pointer++] = v;
-                    if_score_change[v] = true;
-                }
-            }
-            else if (sat_count[c] == 1) // sat_count from 0 to 1
-            {
-                sat_var[c] = flipvar; // record the only true lit's var
-                for (lit *p = clause_c; (v = p->var_num) != 0; p++)
-                {
-                    score[v] -= clause_weight[c];
-                }
-                sat(c);
-            }
-        }
-        else // cur_soln[flipvar] != cur_lit.sense
-        {
-            --sat_count[c];
-            if (sat_count[c] == 1) // sat_count from 2 to 1
-            {
-                for (lit *p = clause_c; (v = p->var_num) != 0; p++)
-                {
-                    if (p->sense == cur_soln[v])
-                    {
-                        score[v] -= clause_weight[c];
-                        sat_var[c] = v;
-                        break;
-                    }
-                }
-            }
-            else if (sat_count[c] == 0) // sat_count from 1 to 0
-            {
-                for (lit *p = clause_c; (v = p->var_num) != 0; p++)
-                {
-                    score[v] += clause_weight[c];
-                    if (score[v] > 0 && score[v] - clause_weight[c] <= 0)
-                    {
-                        score_change_stack[score_change_stack_fill_pointer++] = v;
-                        if_score_change[v] = true;
-                    }
-                }
-                unsat(c);
-            } // end else if
-        }     // end else
-    }
-
-    // update information of flipvar
-    score[flipvar] = -org_flipvar_score;
-    update_goodvarstack2(flipvar);
-}
-*/
 inline void NUWLS::print_best_solution()
 {
     if (best_soln_feasible == 0)

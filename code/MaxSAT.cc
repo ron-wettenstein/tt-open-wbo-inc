@@ -271,6 +271,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), currCost);	
     maxsat_formula->using_nuwls = true;
     NUWLS nuwls_solver;
+    nuwls_solver.problem_weighted = 0;
     build_nuwls_clause_structure();
 
     nuwls_solver.build_instance(maxsat_formula->nuwls_nvars, maxsat_formula->nuwls_nclauses, maxsat_formula->nuwls_topclauseweight,
@@ -290,9 +291,10 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     }
 
     nuwls_solver.init(init_solu);
+    nuwls_solver.opt_unsat_weight = currCost;
 	static unsigned breakTest = 0;
     start_timing();
-    int time_limit_for_ls = NUWLS_TIME_LIMIT;
+    int time_limit_for_ls = nuwls_solver.NUWLS_TIME_LIMIT;
     if (nuwls_solver.if_using_neighbor)
     {
       for (int step = 1; step < nuwls_solver.max_flips; ++step)
@@ -303,11 +305,11 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
           {
             nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-            time_limit_for_ls = get_runtime() + NUWLS_TIME_LIMIT;
+            time_limit_for_ls = get_runtime() + nuwls_solver.NUWLS_TIME_LIMIT;
 
             nuwls_solver.best_soln_feasible = 1;
             nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
-            cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+            
             if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);	
             for (int v = 1; v <= nuwls_solver.num_vars; ++v)
             {
@@ -317,8 +319,9 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
                 solver->model[v - 1] = l_True;
             }
             // modify by ychu
-            auto oriCost = computeCostModel(solver->model);
+            auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
+            cout << "o " << nuwls_solver.opt_unsat_weight << endl;
             // solver->model.copyTo(best_model);
 
             if (nuwls_solver.opt_unsat_weight == 0)
@@ -347,11 +350,11 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
           {
             nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-            time_limit_for_ls = get_runtime() + NUWLS_TIME_LIMIT;
+            time_limit_for_ls = get_runtime() + nuwls_solver.NUWLS_TIME_LIMIT;
 
             nuwls_solver.best_soln_feasible = 1;
             nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
-            cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+            
             if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);	
             for (int v = 1; v <= nuwls_solver.num_vars; ++v)
             {
@@ -361,8 +364,9 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
                 solver->model[v - 1] = l_True;
             }
             //modify by ychu
-            auto oriCost = computeCostModel(solver->model);
+            auto oriCost = nuwls_solver.opt_unsat_weight;
             saveModel(solver->model, oriCost);
+            cout << "o " << nuwls_solver.opt_unsat_weight << endl;
             // solver->model.copyTo(best_model);
 
             if (nuwls_solver.opt_unsat_weight == 0)
