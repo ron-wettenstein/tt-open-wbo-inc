@@ -7,8 +7,11 @@ When using TT-Open-WBO-Inc, please cite the following paper:
 The underlying algorithms are further detailed in:
 
   "Anytime Algorithms for MaxSAT and Beyond", Alexander Nadel, FMCAD'20 (tutorial)
+  
   “On Optimizing a Generic Function in SAT”, Alexander Nadel, FMCAD'20.  
+  
   “Anytime Weighted MaxSAT with Improved Polarity Selection and Bit-Vector Optimization”, Alexander Nadel, FMCAD'19.
+  
   “Solving MaxSAT with Bit-Vector Optimization”, Alexander Nadel, SAT'18.
 
 The license is MIT. See code/LICENSE for further details.
