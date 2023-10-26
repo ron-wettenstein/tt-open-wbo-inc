@@ -658,15 +658,9 @@ int main(int argc, char **argv) {
 		//DoubleOption msPropPerModelThr("TTOpenWboInc", "ms_prop_per_model_thr", "Stop mutation-optimization forever when the improving propagation-per-model threshold is too high. If non-0, ms_sat_calls_per_iteration is not taken into account for any iteration where ms_model_per_sec_conf is considered", 1000000, DoubleRange(0, true, HUGE_VAL, true));
 		if (!msPropPerModelThr.is_set_by_user())
         {
-#ifndef USE_TOPOR			
 			Torc::Instance()->SetMsPropPerModelThr(100000000);
 			printf("c | best-alg-selector overriden ms_prop_per_model_thr to 100000000, since it hadn't been set by the user |\n");	
-#else
-			Torc::Instance()->SetMsPropPerModelThr(0);
-			printf("c | best-alg-selector overriden ms_prop_per_model_thr to 0, since it hadn't been set by the user |\n");	
-#endif
 		}
-
 
         // S = new OLL(_VERBOSITY_MINIMAL_, cardinality);
         
