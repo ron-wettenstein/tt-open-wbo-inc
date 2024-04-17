@@ -102,10 +102,10 @@ int main(int argc, char **argv) {
   printf(
       "c\nc TT-Open-WBO-Inc:\t an Anytime MaxSAT Solver -- based on %s (%s version)\n",
       SATVER, VER);
-  printf("c Version:\t MaxSAT Evaluation 2023\n");
+  printf("c Version:\t MaxSAT Evaluation 2024\n");
   printf("c Author:\t Alexander Nadel\n");
   printf("c Authors of the baseline SAT-based solver Open-WBO-Inc:\t Saurabh Joshi, Prateek Kumar, Ruben Martins, Sukrut Rao\n");
-  printf("c Authors of the local search solver NuWLS-c:\t Yi Chu, Shaowei Cai, Zhendong Lei, Xiang He\n");
+  printf("c Authors of the local search solver NuWLS-c-2023:\t Yi Chu, Shaowei Cai, Chuan Luo\n");
   printf("c Contact:\t alexander.nadel@cs.tau.ac.il -- "
          "http://www.cs.tau.ac.il/research/alexander.nadel/\nc\n");
   try {

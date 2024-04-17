@@ -44,11 +44,11 @@ enum {
   _ALGORITHM_LSU_MCS_
 };
 enum {
+  _UNKNOWN_ = 0,
   _SATISFIABLE_ = 10,
   _UNSATISFIABLE_ = 20,
-  _OPTIMUM_ = 30,
-  _UNKNOWN_ = 40,
-  _ERROR_ = 50
+  _OPTIMUM_ = 30,  
+  _ERROR_ = 0
 };
 enum {
   _INCREMENTAL_NONE_ = 0,
