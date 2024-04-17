@@ -2,6 +2,7 @@
 #include "../utils/Options.h"
 #include "../../../Torc.h"
 #include <algorithm>
+#include <iostream>
 
 using namespace ToporWrapper;
 using namespace std;
@@ -117,9 +118,8 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 		exit(50);
 	}
 
-	auto ts = topor.GetStatistics();
-	latestStat = ts.StatStrShort<false>(true);
-	propagations = topor.GetStatistics().m_Implications;
+	latestStat = topor.GetStatStrShort(true);
+	propagations = topor.GetPropagations();
 	if (trv == Topor::TToporReturnVal::RET_SAT)
 	{
 		model.growTo(nVars());
@@ -145,5 +145,3 @@ bool Solver::solve(const vec<Lit>& assumps)
 	budgetOff();
 	return solveLimited(assumps) == l_True;
 }
-
-

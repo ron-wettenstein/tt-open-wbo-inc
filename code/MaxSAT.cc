@@ -957,6 +957,12 @@ void MaxSAT::saveModel(vec<lbool> &currentModel, uint64_t optionalWeightForPrint
   {
 	startTimeForSatlikeReinvoke = std::chrono::high_resolution_clock::now();  
   }
+  
+  if (oInLatestModel == 0)
+	{
+		printAnswer(_OPTIMUM_);
+		exit(_OPTIMUM_);
+	}
 }
 
 /*_________________________________________________________________________________________________
