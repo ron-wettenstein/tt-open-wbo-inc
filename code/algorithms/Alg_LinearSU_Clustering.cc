@@ -203,6 +203,30 @@ uint64_t LinearSUClustering::computeOriginalCost(vec<lbool> &currentModel,
   |________________________________________________________________________________________________@*/
 void LinearSUClustering::bmoSearch(){
 
+  if (orderWeights.size() == 0)
+	{
+		// No soft clauses
+		solver = rebuildSolver();
+		auto res = searchSATSolver(solver);
+    
+     if (res == l_False) 
+     {
+		 printAnswer(_UNSATISFIABLE_);
+          exit(_UNSATISFIABLE_);
+	 }
+	 else if (res == l_True) 
+	 {
+		  saveModel(solver->model, 0);
+		  printAnswer(_SATISFIABLE_);
+          exit(_SATISFIABLE_);
+	 }
+	 else
+	 {
+		 printAnswer(_UNKNOWN_);
+          exit(_UNKNOWN_);
+	 }
+	}
+  
   assert(orderWeights.size() > 0);
   lbool res = l_True;  
   const int verbosity = Torc::Instance()->GetMsVerbosity();
@@ -822,10 +846,16 @@ void LinearSUClustering::bmoSearch(){
   
   InitSatLike();  
   
-  for(;;){
+  for(bool firstLoop = true; true; firstLoop = false){
     sat:
 
     res = searchSATSolver(solver, assumptions);
+    
+     if (firstLoop && res == l_False) 
+     {
+		 printAnswer(_UNSATISFIABLE_);
+          exit(_UNSATISFIABLE_);
+	 }
     
     if (Torc::Instance()->GetNuwlsMode() && res == l_True && maxsat_formula->using_nuwls == false && maxsat_formula->nTotalLitCount() < 350000000)
     {

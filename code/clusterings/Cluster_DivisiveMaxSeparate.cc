@@ -61,7 +61,7 @@ Cluster_DivisiveMaxSeparate::Cluster_DivisiveMaxSeparate(
   cluster_indices.push({0, false});
   distances.growTo(original_weights.size() - 1);
   // store distances between weights
-  for (uint64_t i = 0; i < original_weights.size() - 1; i++) {
+  for (int64_t i = 0; i < (int64_t)original_weights.size() - 1; ++i) {
     distances[i] = original_weights[i + 1] - original_weights[i];
   }
 }
