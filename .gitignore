@@ -1,3 +1,4 @@
 *.or
+*.od
 code/depend.mk
 code/tt-open-wbo-inc-*

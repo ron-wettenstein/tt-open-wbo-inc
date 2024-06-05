@@ -49,6 +49,30 @@ namespace Topor
 		ss << setfill('0') << setw(width) << hex << (val | 0);
 		return ss.str();
 	}
+	
+	template <typename T>
+	inline size_t memMb(const vector<T>& v)
+	{
+		return v.size() * sizeof(T) / 1000;
+	}
+
+	template <typename TKey, typename TVal>
+	inline size_t memMb(const unordered_map<TKey, TVal>& m)
+	{
+		return m.size() * (sizeof(TKey) + sizeof(TVal)) / 1000;
+	}
+
+	using TCompressedClss = unordered_map<uint16_t, CBitArray>;
+	inline size_t memMb(const TCompressedClss& bc)
+	{
+		auto res = bc.size() * sizeof(uint16_t);
+		for (auto& i : bc)
+		{
+			res += i.second.memMb();
+		}
+
+		return res;
+	}
 
 	// The main solver class
 	template <typename TLit, typename TUInd, bool Compress>
@@ -2316,6 +2340,20 @@ protected:
 		bool Assign(TULit l, TUInd parentClsInd, TULit otherWatch, TUV decLevel, bool toPropagate = true, bool externalAssignment = false);
 		void Unassign(TULit l);
 		void UnassignVar(TUVar v);
+		template <class TULitSpan>
+		inline auto AdditionalAssign(TULitSpan acSpan, TUInd acInd)
+		{
+			if (acSpan.size() > 1 && IsAssigned(acSpan[0]) && !IsAssigned(acSpan[1]))
+			{
+				swap(acSpan[0], acSpan[1]);
+			}
+
+			if (acSpan.size() > 0 && !IsAssigned(acSpan[0]) && all_of(acSpan.begin() + 1, acSpan.end(), [&](TULit l) { return IsFalsified(l); }))
+			{
+				++m_Stat.m_FlippedClausesUnit;
+				Assign(acSpan[0], acSpan.size() >= 2 ? acInd : BadClsInd, acSpan.size() == 1 ? BadULit : acSpan[1], acSpan.size() == 1 ? 0 : GetAssignedDecLevel(acSpan[1]));
+			}
+		}
 		[[maybe_unused]] bool DebugLongImplicationInvariantHolds(TULit l, TUV decLevel, TUInd parentClsIndIfLong);
 		
 		// TULitSpan can be: (1) const span<TULit>, (2) TSpanTULit
@@ -2483,8 +2521,20 @@ protected:
 		void OnBadDratFile();
 		void NewLearntClsApplyCbLearntDrat(const span<TULit> learntCls);
 
-		void RemoveLitsFromSubsumed();
-		CVector<TUVar> m_VarsParentSubsumed;
+		struct TParentSubsumed
+		{
+			TParentSubsumed(TULit l, bool isBinary, TUInd parentClsInd) : m_L(l), m_IsBinary(isBinary), m_ParentClsInd(parentClsInd) {}
+			TULit m_L;
+			bool m_IsBinary;
+			union
+			{
+				// Parent clause for longs
+				TUInd m_ParentClsInd;
+				// The other literal in the clause for binaries
+				TULit m_BinOtherLit;
+			};
+		};
+		vector<TParentSubsumed> m_VarsParentSubsumed;
 		
 		// An array of vectors of literals for various algorithms (which must cleaned up *before* every usage) 
 		// The capacity, assigned at the beginning of Solve, is the number of variables

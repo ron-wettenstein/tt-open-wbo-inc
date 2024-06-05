@@ -749,16 +749,19 @@ pair<typename CTopi<TLit, TUInd, Compress>::TSpanTULit, TUInd> CTopi<TLit, TUInd
 						}
 					}
 
-					if (!parentSubsumedByCurrResolvent)
-					{
-						continue;
-					}
-
 					if (parentSubsumedByCurrResolvent)
 					{
-						m_VarsParentSubsumed.push_back(v);
+						try
+						{
+							m_VarsParentSubsumed.push_back(TParentSubsumed(GetAssignedLitForVar(v), m_AssignmentInfo[v].IsAssignedBinary(), m_VarInfo[v].m_ParentClsInd));
+						}
+						catch (...)
+						{
+							SetStatus(TToporStatus::STATUS_ALLOC_FAILED, "m_VarsParentSubsumed.push_back allocation failure");
+						}
+															
 						if (unlikely(IsUnrecoverable())) return make_pair(visitedNegLitsPrevDecLevels.get_span(), BadClsInd);
-						assert(NV(2) || P("On-the-fly subsumption will remove the pivot " + SVar(v) + " from this parent\n"));
+						assert(NV(2) || P("On-the-fly subsumption will remove the pivot " + SVar(v) + " from the parent " + HexStr(m_VarInfo[v].m_ParentClsInd) + " : " + SLits((span<TULit>)parent) + "\n"));
 					}
 				}
 			}
@@ -1234,36 +1237,6 @@ pair<uint64_t, priority_queue<typename CTopi<TLit, TUInd, Compress>::TUV>> CTopi
 }
 
 template <typename TLit, typename TUInd, bool Compress>
-void CTopi<TLit, TUInd, Compress>::RemoveLitsFromSubsumed()
-{
-	assert(IsOnTheFlySubsumptionParentOn());
-	for (auto v : m_VarsParentSubsumed.get_span())
-	{
-		if (!m_AssignmentInfo[v].IsAssignedBinary())
-		{
-			auto parentCls = Cls(m_VarInfo[v].m_ParentClsInd);
-			if (parentCls.size() == 3)
-			{
-				assert(NV(2) || P("On-the-fly subsumption converted the long parent to a binary; pivot = " + SVar(v) + "\n"));
-				const TULit l1 = parentCls[GetVar(parentCls[0]) == v ? 1 : 0];
-				const TULit l2 = parentCls[GetVar(parentCls[2]) == v ? 1 : 2];
-				DeleteCls(m_VarInfo[v].m_ParentClsInd);
-				array<TULit, 2> binCls = { l1, l2 };
-				// The 2nd parameter doesn't matter since the clause is binary
-				AddClsToBufferAndWatch(binCls, true, true);
-			}
-			else
-			{
-				assert(NV(2) || P("On-the-fly subsumption deleted the pivot from the long parent; pivot = " + SVar(v) + "\n"));
-				DeleteLitFromCls(m_VarInfo[v].m_ParentClsInd, GetAssignedLitForVar(v));
-			}
-			m_Stat.m_LitsRemovedByConfSubsumption++;
-		}
-	}
-	m_VarsParentSubsumed.clear();
-}
-
-template <typename TLit, typename TUInd, bool Compress>
 void CTopi<TLit, TUInd, Compress>::ConflictAnalysisLoop(TContradictionInfo& contradictionInfo)
 {
 	while (m_Status == TToporStatus::STATUS_UNDECIDED && contradictionInfo.IsContradiction())
@@ -1337,21 +1310,51 @@ void CTopi<TLit, TUInd, Compress>::ConflictAnalysisLoop(TContradictionInfo& cont
 			}
 		}
 
-		if (IsOnTheFlySubsumptionParentOn() && !m_VarsParentSubsumed.empty())
-		{
-			RemoveLitsFromSubsumed();
-		}
-
 		// Determine how to backtrack 		
 		const bool isChronoBt = m_EarliestFalsifiedAssump != BadULit || conflictAtAssumptionLevel || (m_ConfsSinceNewInv >= m_ParamConflictsToPostponeChrono && m_DecLevel - ncbBtLevel > m_CurrChronoBtIfHigher) || maxDecLevelInContradictingCls <= m_DecLevelOfLastAssignedAssumption;
 		const auto btLevel = isChronoBt ? (m_EarliestFalsifiedAssump != BadULit || conflictAtAssumptionLevel || m_CurrCustomBtStrat == 0 || ncbBtLevel + 1 == m_DecLevel ? m_DecLevel - 1 : GetDecLevelWithBestScore(ncbBtLevel + 1, m_DecLevel)) : ncbBtLevel;
 		Backtrack(btLevel, false);
 		Assign(m_FlippedLit = cls[0], cls.size() >= 2 ? assertingClsInd : BadClsInd, cls.size() == 1 ? BadULit : cls[1], cls.size() == 1 ? 0 : GetAssignedDecLevel(cls[1]));
 		assert(NV(2) || P("***** Flipped former UIP to " + SLit(cls[0]) + "\n"));
-		if (!additionalCls.empty() && !IsAssigned(additionalCls[0]) && all_of(additionalCls.begin() + 1, additionalCls.end(), [&](TULit l) { return IsFalsified(l); }))
+		
+		AdditionalAssign(additionalCls, additionalAssertingClsInd);
+		if (IsOnTheFlySubsumptionParentOn() && !m_VarsParentSubsumed.empty())
 		{
-			++m_Stat.m_FlippedClausesUnit;
-			Assign(additionalCls[0], additionalCls.size() >= 2 ? additionalAssertingClsInd : BadClsInd, additionalCls.size() == 1 ? BadULit : additionalCls[1], additionalCls.size() == 1 ? 0 : GetAssignedDecLevel(additionalCls[1]));
+			assert(IsOnTheFlySubsumptionParentOn());
+			for (TParentSubsumed& vps : m_VarsParentSubsumed)
+			{
+				TUVar v = GetVar(vps.m_L);
+				if (!vps.m_IsBinary)
+				{
+					auto parentCls = Cls(vps.m_ParentClsInd);
+					if (parentCls.size() == 3)
+					{
+						assert(NV(2) || P("On-the-fly subsumption converted the long parent to a binary; pivot = " + SVar(v) + "\n"));
+						const TULit l1 = parentCls[GetVar(parentCls[0]) == v ? 1 : 0];
+						const TULit l2 = parentCls[GetVar(parentCls[2]) == v ? 1 : 2];
+						DeleteCls(vps.m_ParentClsInd);
+						array<TULit, 2> binCls = { l1, l2 };
+						// The 2nd parameter doesn't matter since the clause is binary
+						AddClsToBufferAndWatch(binCls, true, true);
+						AdditionalAssign(binCls, BadClsInd);
+					}
+					else
+					{
+						assert(NV(2) || P("Before on-the-fly subsumption deleted the pivot " + SVar(v) + " from the long parent " + HexStr(vps.m_ParentClsInd) + "; clause: " + SLits(parentCls) + "\n"));
+						DeleteLitFromCls(vps.m_ParentClsInd, vps.m_L);
+						assert(NV(2) || P("After on-the-fly subsumption deleted the pivot " + SVar(v) + " from the long parent " + HexStr(vps.m_ParentClsInd) + "; clause: " + SLits(parentCls) + "\n"));
+						AdditionalAssign(Cls(vps.m_ParentClsInd), vps.m_ParentClsInd);
+					}
+					m_Stat.m_LitsRemovedByConfSubsumption++;
+				}
+				else
+				{
+					array<TULit, 1> newUnit({ vps.m_BinOtherLit});
+					AdditionalAssign(newUnit, BadClsInd);
+				}
+			}
+			
+			m_VarsParentSubsumed.clear();
 		}
 
 		contradictionInfo = BCP();
