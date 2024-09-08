@@ -1,7 +1,9 @@
 TT-Open-WBO-Inc: an anytime MaxSAT solver by Alexander Nadel available from 2019, where its GitHub version was initialized with the solver submitted to MaxSAT Evaluation 2023. 
 
-When using TT-Open-WBO-Inc, please cite the following paper:
+TT-Open-WBO-Inc is described in the following two papers:
 
+        "TT-Open-WBO-Inc: an Efficient Anytime MaxSAT Solver", Alexander Nadel, J. Satisf. Boolean Model. Comput. 15(1): 1-7 (2024)
+        
         "Polarity and Variable Selection Heuristics for SAT-Based Anytime MaxSAT", Alexander Nadel, J. Satisf. Boolean Model. Comput. 12(1): 17-22 (2020)
 
 The underlying algorithms are further detailed in:
