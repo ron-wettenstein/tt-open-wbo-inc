@@ -121,7 +121,9 @@ int main(int argc, char **argv) {
 #endif
 
     BoolOption printmodel("Open-WBO", "print-model", "Print model.\n", true);
-
+    
+    IntOption disable_buffering("TTOpenWboInc", "disable-buffering", "Disable buffering to stdout.\n", 0, IntRange(0, 1));  
+	
     IntOption num_tests("Test", "num_tests", "Number of tests\n", 0,
                         IntRange(0, 10000000));
 
@@ -293,6 +295,13 @@ int main(int argc, char **argv) {
     IntOption msVerbosity("TTOpenWboInc", "ms_verbosity", "Mutation sampling: verbosity (0: not verbose at all; only print when interrupted or finished; 1: print o and timeo messages; 2: print some info about the alg. progress; 3: debugging)\n", 2, IntRange(0, 3));
     
     parseOptions(argc, argv, true);
+    
+      
+    if (disable_buffering)
+	{
+		printf("c -disable-buffering=1 ==> buffering disabled\n");
+		setvbuf(stdout, NULL, _IONBF, 0);
+	}  
 
     if ((int)num_tests) {
       if ((int)test_join) {
