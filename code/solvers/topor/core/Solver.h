@@ -31,7 +31,7 @@ namespace ToporWrapper
 			inline void budgetOffConflict() { confBudgets[0] = -1; }
 			inline void budgetOffConflict2() { confBudgets[1] = -1; }
 			inline void budgetOff() { budgetOffConflict(); budgetOffConflict2(); }
-			inline void varBumpActivity(Var v, double inc = 1.0) { topor.BoostScore(v, inc); }
+			inline void varBumpActivity(Var v, double inc = 1.0) { topor.BoostScore(T(v), inc); }
 			
 			lbool solveLimited (const vec<Lit>& assumps);
 			bool solve(const vec<Lit>& assumps);			
@@ -40,7 +40,7 @@ namespace ToporWrapper
 			inline int nVars() const { return varsNum; }    
 			// FALSE means solver is in a conflicting state   
 			inline bool okay() const { return !topor.IsError(); } 
-			inline lbool value(Var x) const   { return G(topor.GetLitValue(x)); }
+			inline lbool value(Var x) const   { return G(topor.GetLitValue(T(x))); }
 			inline lbool value(Lit p) const   { return G(topor.GetLitValue(T(p))); }
 			
 			// Glucose parameters, accessed by the solver. We declare them, but ignored in the code
