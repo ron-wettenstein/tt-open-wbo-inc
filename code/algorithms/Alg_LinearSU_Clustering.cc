@@ -890,7 +890,12 @@ void LinearSUClustering::bmoSearch(){
         nuwls_solver.init(init_solu);
         nuwls_solver.opt_unsat_weight = currCost;
         start_timing(); 
-        int time_limit_for_ls = nuwls_solver.NUWLS_TIME_LIMIT;
+        
+        const auto nuwlsTimeLimit = Torc::Instance()->GetNuwlsIsExternalTimeLimit() ? Torc::Instance()->GetNuwlsExternalTimeLimit() : nuwls_solver.NUWLS_TIME_LIMIT;
+        cout << "c nuwlsTimeLimit = " << nuwlsTimeLimit << endl;
+        
+        int time_limit_for_ls = nuwlsTimeLimit;
+        
         int step = 0;
         // if (nuwls_solver.if_using_neighbor)
         {
@@ -903,7 +908,7 @@ void LinearSUClustering::bmoSearch(){
                 nuwls_solver.best_soln_feasible = 1;
                 nuwls_solver.local_soln_feasible = 1;
                 nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-                time_limit_for_ls = get_runtime() + nuwls_solver.NUWLS_TIME_LIMIT;
+                time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
 
                 nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
                 cout << "o " << nuwls_solver.opt_unsat_weight << endl;

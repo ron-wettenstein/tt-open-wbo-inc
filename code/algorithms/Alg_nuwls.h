@@ -257,11 +257,14 @@ inline void NUWLS::settings()
 {
     local_soln_feasible = 1;
     NUWLS_TIME_LIMIT = 15;
+    
+    max_flips = Torc::Instance()->GetSatlikeMaxFlips();    
+    max_non_improve_flip = Torc::Instance()->GetSatlikeMaxNonImproveFlip();
+    cout << "c max_flips = " << max_flips << "; max_non_improve_flip = " << max_non_improve_flip << endl;	
+    
     if (1 == problem_weighted)
     {
         cout << "c problem weighted = 1" << endl;
-        max_flips = 10000000;
-        max_non_improve_flip = 10000000;
         large_clause_count_threshold = 0;
         soft_large_clause_count_threshold = 0;
 
@@ -308,8 +311,6 @@ inline void NUWLS::settings()
     else
     {
         cout << "c problem weighted = 0" << endl;
-        max_flips = 10000000;
-        max_non_improve_flip = 10000000;
 
         large_clause_count_threshold = 0;
         soft_large_clause_count_threshold = 0;

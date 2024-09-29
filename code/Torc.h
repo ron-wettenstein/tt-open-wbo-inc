@@ -58,6 +58,8 @@ public:
    void SetMrsBeaverApplySizeThrDuringInitialPolosat(int p) { mrsBeaverApplySizeThrDuringInitialPolosat = p; }
    void SetPrintEveryModel(int p) { printEveryModel = p; }
    void SetNuwlsMode(int p) { nuwlsMode = p; }   
+   void SetNuwlsIsExternalTimeLimit(int p) { nuwlsIsExternalTimeLimit = p; }   
+   void SetNuwlsExternalTimeLimit(int p) { nuwlsExternalTimeLimit = p; }   
    void SetSatlikeMode(int p) { satlikeMode = p; }
    void SetSatlikeInvsThr(int p) { satlikeInvsThr = p; }
    void SetSatlikeTimeThr(int p) { satlikeTimeThr = p; }
@@ -124,6 +126,8 @@ public:
    int GetPrintEveryModel() const { return printEveryModel; }
    int GetRandBump() const;
    int GetNuwlsMode() const { return nuwlsMode; }
+   int GetNuwlsIsExternalTimeLimit() const { return nuwlsIsExternalTimeLimit; }   
+   int GetNuwlsExternalTimeLimit() const { return nuwlsExternalTimeLimit; }   
    int GetSatlikeMode() const { return satlikeMode; }
    int GetSatlikeInvsThr() const { return satlikeInvsThr; }
    int GetSatlikeTimeThr() const { return satlikeTimeThr; }
@@ -156,7 +160,7 @@ private:
 	partialSumFailItersToSwitch(0), partialSumLayersThr(10), partialSumConflicts(1000), pplcHolder(0), mrsBeaverSizeSwitchToComplete(1000000), mrsBeaverEachIterStartBestModel(0), blockBestModel(0), polosatTurnOffHighLevelConfThrForIters(0), optimisticMaxSoftFraction(1.), conservativeMaxSoftFraction(1.), 
 	weightedObvBsFirstIterStrat(0), wobsAdaptiveStoppedStopMs(0), wobsAdaptiveNotStoppedMSThrMult(1.), msObvStrat(3), mrsBeaverPolosatRegulateStrat(0), mrsBeaverApplySizeThrDuringInitialPolosat(0),
 	skipFillingSolverPolarity(false), printEveryModel(0), 
-	nuwlsMode(0), satlikeMode(0), satlikeInvsThr(0), satlikeTimeThr(15), satlikeInitTimeThr(5), satlikePreInitTimeThr(1), satlikePreInitMaxClss(10000000), satlikeMaxFlips(10000000), satlikeMaxNonImproveFlip(10000000), satlikeMaxFlipsReduceBeyondClsNum(0), satlikeReinvokeTimeThr(60), satlikeReinvokeMult(1.), satlikeMimicMse21(0),
+	nuwlsMode(0), nuwlsIsExternalTimeLimit(0), nuwlsExternalTimeLimit(0), satlikeMode(0), satlikeInvsThr(0), satlikeTimeThr(15), satlikeInitTimeThr(5), satlikePreInitTimeThr(1), satlikePreInitMaxClss(10000000), satlikeMaxFlips(10000000), satlikeMaxNonImproveFlip(10000000), satlikeMaxFlipsReduceBeyondClsNum(0), satlikeReinvokeTimeThr(60), satlikeReinvokeMult(1.), satlikeMimicMse21(0),
 	totProp0s(0), totBuildLayered(0), 
 	msSatInvToReinvoke(0), msSatInvToReinvokeMult(1), msReinvokeMultThr(1.), initMsMaxEpochs(-1), msReinvokeMultThrMin(0.001),
 	msVerbosity(1) {};  // Private so that it can  not be called
@@ -213,6 +217,8 @@ private:
    int mrsBeaverApplySizeThrDuringInitialPolosat;
    int printEveryModel;
    int nuwlsMode;
+   int nuwlsIsExternalTimeLimit;
+   int nuwlsExternalTimeLimit;
    int satlikeMode;   
    int satlikeInvsThr;
    int satlikeTimeThr;

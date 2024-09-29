@@ -294,7 +294,11 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
     nuwls_solver.opt_unsat_weight = currCost;
 	static unsigned breakTest = 0;
     start_timing();
-    int time_limit_for_ls = nuwls_solver.NUWLS_TIME_LIMIT;
+    
+    const auto nuwlsTimeLimit = Torc::Instance()->GetNuwlsIsExternalTimeLimit() ? Torc::Instance()->GetNuwlsExternalTimeLimit() : nuwls_solver.NUWLS_TIME_LIMIT;
+    cout << "c nuwlsTimeLimit = " << nuwlsTimeLimit << endl;
+    
+    int time_limit_for_ls = nuwlsTimeLimit;
     if (nuwls_solver.if_using_neighbor)
     {
       for (int step = 1; step < nuwls_solver.max_flips; ++step)
@@ -305,7 +309,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
           {
             nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-            time_limit_for_ls = get_runtime() + nuwls_solver.NUWLS_TIME_LIMIT;
+            time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
 
             nuwls_solver.best_soln_feasible = 1;
             nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
@@ -350,7 +354,7 @@ lbool MaxSAT::polosat(Solver *solver, vec<Lit> &assumptions, vec<Lit> &obsVecLit
           if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
           {
             nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-            time_limit_for_ls = get_runtime() + nuwls_solver.NUWLS_TIME_LIMIT;
+            time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
 
             nuwls_solver.best_soln_feasible = 1;
             nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;

@@ -100,9 +100,9 @@ static void SIGINT_exit(int signum) {
 
 int main(int argc, char **argv) {
   printf(
-      "c\nc TT-Open-WBO-Inc:\t an Anytime MaxSAT Solver -- based on %s (%s version)\n",
-      SATVER, VER);
-  printf("c Version:\t MaxSAT Evaluation 2024\n");
+      "c\nc TT-Open-WBO-Inc:\t an Anytime MaxSAT Solver -- based on %s\n",
+      SATVER);
+  printf("c Version:\t Development after MaxSAT Evaluation 2024\n");
   printf("c Author:\t Alexander Nadel\n");
   printf("c Authors of the baseline SAT-based solver Open-WBO-Inc:\t Saurabh Joshi, Prateek Kumar, Ruben Martins, Sukrut Rao\n");
   printf("c Authors of the local search solver NuWLS-c-2023:\t Yi Chu, Shaowei Cai, Chuan Luo\n");
@@ -273,14 +273,16 @@ int main(int argc, char **argv) {
     IntOption mrsBeaverApplySizeThrDuringInitialPolosat("TTOpenWboInc", "mrs_beaver_apply_size_thr_during_initial_polosat", "Mrs. Beaver: apply the size threshold *during* the initial polosat\n", 1);
     IntOption printEveryModel("TTOpenWboInc", "print_every_model", "Print every new improving model explicitly\n", 0);
     IntOption nuwlsMode("TTOpenWboInc", "nuwls_mode", "NuWLS mode of usage (0: no NuWLS; 1: Run NuWLS once\n", 1);
+    IntOption nuwlsIsExternalTimeLimit("TTOpenWboInc", "nuwls_is_external_time_limit", "NuWLS read the time-limit from the external parameter \n", 0);
+    IntOption nuwlsExternalTimeLimit("TTOpenWboInc", "nuwls_external_time_limit", "NuWLS the external time-limit (relevant if nuwls_is_external_time_limit is 1) \n", 20);
     IntOption satlikeMode("TTOpenWboInc", "satlike_mode", "SatLike mode of usage (0: no SatLike; 1: Run SatLike once; 2: Run SatLike more than once; start counting time till next iteration from the end of the last SatLike invocation; 3: Similar to 2, but update the time counting until next iteration, whenever a new best model is found\n", 0);
     IntOption satlikeInvsThr("TTOpenWboInc", "satlike_invs_thr", "SatLike: threshold on the number of invocations (0: no threshold; n>0: at most n invocations)\n", 2);
     IntOption satlikeTimeThr("TTOpenWboInc", "satlike_time_thr", "Time threshold in seconds for SatLike solving\n", 15);
     IntOption satlikeInitTimeThr("TTOpenWboInc", "satlike_init_time_thr", "Time threshold in seconds for SatLike initialization, that is, inside building the neighbourhood relations (0 means no threshold)\n", 5);
     IntOption satlikePreInitTimeThr("TTOpenWboInc", "satlike_pre_init_time_thr", "Time threshold in seconds for SatLike pre-initialization, that is, *before* building the neighbourhood relations (0 means no threshold)\n", 1);
     IntOption satlikePreInitMaxClss("TTOpenWboInc", "satlike_pre_init_max_clss", "Maximal number of clauses in SatLike pre-initialization to skip building the neighbourhood relations\n", 10000000);
-    IntOption satlikeMaxFlips("TTOpenWboInc", "satlike_max_flips", "SatLike initialization: the maximal number of flips\n", 10000000);
-    IntOption satlikeMaxNonImproveFlip("TTOpenWboInc", "satlike_max_non_improve_flip", "SatLike initialization: the maximal number of non-improving flips\n", 10000000);
+    IntOption lsMaxFlips("TTOpenWboInc", "ls_max_flips", "SatLike/NuWLS initialization: the maximal number of flips\n", 10000000);
+    IntOption lsMaxNonImproveFlip("TTOpenWboInc", "ls_max_non_improve_flip", "SatLike/NuWLS initialization: the maximal number of non-improving flips\n", 10000000);
     IntOption satlikeMaxFlipsReduceBeyondClsNum("TTOpenWboInc", "satlike_max_flips_reduce_beyond_cls_num", "SatLike: is non-0 and clss_num > satlike_max_flips_reduce_beyond_cls_num, divide satlike_max_flips and satlike_max_non_improve_flip by (clss_num / satlike_max_flips_reduce_beyond_cls_num)\n", 0);
     IntOption satlikeReinvokeTimeThr("TTOpenWboInc", "satlike_reinvoke_time_thr", "Time threshold in seconds before SatLike reinvocation (don't forget to also set satlike_mode to 2 or 3)\n", 60);
     DoubleOption satlikeReinvokeMult("TTOpenWboInc", "satlike_reinvoke_mult", "The double value by which SatLike threshold is multiplied upon each reinvocation\n", 1.);
@@ -359,14 +361,16 @@ int main(int argc, char **argv) {
     Torc::Instance()->SetMrsBeaverApplySizeThrDuringInitialPolosat(mrsBeaverApplySizeThrDuringInitialPolosat);
     Torc::Instance()->SetPrintEveryModel(printEveryModel);
     Torc::Instance()->SetNuwlsMode(nuwlsMode);
+    Torc::Instance()->SetNuwlsIsExternalTimeLimit(nuwlsIsExternalTimeLimit);   
+    Torc::Instance()->SetNuwlsExternalTimeLimit(nuwlsExternalTimeLimit);   
     Torc::Instance()->SetSatlikeMode(satlikeMode);
     Torc::Instance()->SetSatlikeInvsThr(satlikeInvsThr);
     Torc::Instance()->SetSatlikeTimeThr(satlikeTimeThr);
     Torc::Instance()->SetSatlikeInitTimeThr(satlikeInitTimeThr);
     Torc::Instance()->SetSatlikePreInitTimeThr(satlikePreInitTimeThr);
     Torc::Instance()->SetSatlikePreInitMaxClss(satlikePreInitMaxClss);
-    Torc::Instance()->SetSatlikeMaxFlips(satlikeMaxFlips);
-    Torc::Instance()->SetSatlikeMaxNonImproveFlip(satlikeMaxNonImproveFlip);
+    Torc::Instance()->SetSatlikeMaxFlips(lsMaxFlips);
+    Torc::Instance()->SetSatlikeMaxNonImproveFlip(lsMaxNonImproveFlip);
     Torc::Instance()->SetSatlikeMaxFlipsReduceBeyondClsNum(satlikeMaxFlipsReduceBeyondClsNum);
     Torc::Instance()->SetSatlikeReinvokeTimeThr(satlikeReinvokeTimeThr);
     Torc::Instance()->SetSatlikeReinvokeMult(satlikeReinvokeMult);
@@ -612,20 +616,7 @@ int main(int argc, char **argv) {
 			Torc::Instance()->SetSatlikeInitTimeThr(30);
 			printf("c | best-alg-selector overriden satlikeInitTimeThr to 30, since it hadn't been set by the user |\n");	
 		}
-		
-		if (!satlikeMaxFlips.is_set_by_user())
-		{
-			Torc::Instance()->SetSatlikeMaxFlips(200000000);
-			printf("c | best-alg-selector overriden satlikeMaxFlips to 200000000, since it hadn't been set by the user |\n");	
-		}
-		
-		if (!satlikeMaxNonImproveFlip.is_set_by_user())
-		{
-			Torc::Instance()->SetSatlikeMaxNonImproveFlip(10000000);
-			printf("c | best-alg-selector overriden satlikeMaxNonImproveFlip to 10000000, since it hadn't been set by the user |\n");	
-		}
-		
-		
+				
 		if (!cardinality.is_set_by_user())
 		{
 			cardinality = 2;
