@@ -218,10 +218,12 @@ int main(int argc, char **argv) {
 	IntOption polConservative("TTOpenWboInc", "conservative", "Apply conservative polarity heuristic?\n", 1);
 	BoolOption conservativeUseAllVars("TTOpenWboInc", "conservative_use_all_vars", "Re-use the polarity of all the variables within the conservative approach (or, otherwise, only the initial once)?\n", true);	
 	IntOption polOptimistic("TTOpenWboInc", "optimistic", "Set target variables' polarity to the optimum?\n", 1);	
+	//W: -target_vars_bump_val=750 -target_vars_bump_rel_weights=1 -target_vars_bump_max_rand_val=1000
+	//U: -target_vars_bump_val=50 -target_vars_bump_rel_weights=0 -target_vars_bump_max_rand_val=0
 #ifndef USE_TOPOR
 	IntOption targetVarsBumpVal("TTOpenWboInc", "target_vars_bump_val", "Bump factor of the activity of the targets at the beginning\n", 113);	
 #else
-	IntOption targetVarsBumpVal("TTOpenWboInc", "target_vars_bump_val", "Bump factor of the activity of the targets at the beginning\n", 100);	
+	IntOption targetVarsBumpVal("TTOpenWboInc", "target_vars_bump_val", "Bump factor of the activity of the targets at the beginning\n", 750);	
 #endif
 	// Bool
 	IntOption targetVarsBumpRelWeights("TTOpenWboInc", "target_vars_bump_rel_weights", "Bump the variable scores, where the bump value is relative to the weights?\n", 1);	
@@ -559,7 +561,7 @@ int main(int argc, char **argv) {
 #else
 		if (!targetVarsBumpVal.is_set_by_user())
         {
-			Torc::Instance()->SetTargetVarsBumpVal(1);
+			Torc::Instance()->SetTargetVarsBumpVal(50);
 			printf("c | best-alg-selector overriden target_vars_bump_val to 1, since it hadn't been set by the user |\n");	
 		}
 		//IntOption targetVarsBumpRelWeights("TTOpenWboInc", "target_vars_bump_rel_weights", "Bump the variable scores, where the bump value is relative to the weights?\n", 1);	
