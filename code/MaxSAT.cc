@@ -112,13 +112,16 @@ bool MaxSAT::isRealModel(vec<lbool> &currentModel)
   return true;	
 }
 
-
 void MaxSAT::build_nuwls_clause_structure()
 {
+  // maxsat_formula->nuwls_nvars: the maximal variable index in the formula (in hard and soft clauses, not including any selectors)
   maxsat_formula->nuwls_nvars = maxsat_formula->nVars() - maxsat_formula->nSoft();
+  // maxsat_formula->nuwls_nclauses:  the number of clauses, hard + soft
   maxsat_formula->nuwls_nclauses = maxsat_formula->nHard() + maxsat_formula->nSoft();
+  // maxsat_formula->nuwls_topclauseweight: overall weight of all the soft clauses together + 1
   maxsat_formula->nuwls_topclauseweight = maxsat_formula->getProblemType() == _UNWEIGHTED_ ? maxsat_formula->getHardWeight() : maxsat_formula->getSumWeights() + 1;
 
+  // nuwls_num_hclauses: the number of hard clauses
   int nuwls_num_hclauses = maxsat_formula->nHard();
   maxsat_formula->nuwls_clause_lit = new clauselit *[maxsat_formula->nuwls_nclauses + 10];
   maxsat_formula->nuwls_clause_lit_count = new int[maxsat_formula->nuwls_nclauses + 10];
@@ -129,16 +132,26 @@ void MaxSAT::build_nuwls_clause_structure()
 
   int tem_v, tem_sense, tem_lit_count;
   bool clause_reduent;
+  // c counts the number of clauses (will be identical to maxsat_formula->nuwls_nclauses, if no redundant clauses are identified)
   int c = 0;
+  // maxsat_formula->nHard(): the number of hard clauses
+  // The loop goes over every hard clause. It copies the clauses to NUWLS's data structures, while skipping tautologies and removing identical literals.
+  // There is a very similar loop for soft clauses coming up next
   for (int i = 0; i < maxsat_formula->nHard(); ++i)
   {
+	// Storing the hard clause size
     maxsat_formula->nuwls_clause_lit_count[c] = maxsat_formula->getHardClause(i).clause.size();
+	// Storing the hard clause literals
     maxsat_formula->nuwls_clause_lit[c] = new clauselit[maxsat_formula->nuwls_clause_lit_count[c] + 1];
     clause_reduent = false;
+	// Counts the actual number of literals
     tem_lit_count = 0;
+	// Go over all the literals in our hard clause
     for (int j = 0; j < maxsat_formula->nuwls_clause_lit_count[c]; ++j)
     {
+	  // tem_v is set to the variable index in the original formula
       tem_v = var(maxsat_formula->getHardClause(i).clause[j]) + 1;
+	  // tem_sense is the sign: 1 for positive literals, 0 for negative literals
       tem_sense = 1 - sign(maxsat_formula->getHardClause(i).clause[j]);
       if (redunt_test[tem_v] == 0)
       {
@@ -167,6 +180,7 @@ void MaxSAT::build_nuwls_clause_structure()
       maxsat_formula->nuwls_clause_weight[c] = maxsat_formula->nuwls_topclauseweight;
       maxsat_formula->nuwls_clause_lit[c][tem_lit_count].var_num = 0;
       // maxsat_formula->nuwls_clause_lit[c][tem_lit_count].clause_num = -1;
+	  // The number of literals in the clause
       maxsat_formula->nuwls_clause_lit_count[c] = tem_lit_count;
       c++;
     }
@@ -175,6 +189,8 @@ void MaxSAT::build_nuwls_clause_structure()
       delete maxsat_formula->nuwls_clause_lit[c];
     }
   }
+  
+  // This loop goes over every soft clause
   for (int i = nuwls_num_hclauses; i < maxsat_formula->nuwls_nclauses; ++i)
   {
     maxsat_formula->nuwls_clause_lit_count[c] = maxsat_formula->getSoftClause(i - nuwls_num_hclauses).clause.size();
@@ -209,6 +225,7 @@ void MaxSAT::build_nuwls_clause_structure()
       redunt_test[var(maxsat_formula->getSoftClause(i - nuwls_num_hclauses).clause[j]) + 1] = 0;
     if (clause_reduent == false)
     {
+	  // The weight of the soft clause
       maxsat_formula->nuwls_clause_weight[c] = maxsat_formula->getSoftClause(i - nuwls_num_hclauses).weight;
       maxsat_formula->nuwls_clause_lit[c][tem_lit_count].var_num = 0;
       // maxsat_formula->nuwls_clause_lit[c][tem_lit_count].clause_num = -1;
