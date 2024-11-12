@@ -26,6 +26,8 @@
  */
 
 #include <iostream>
+#include <cstdlib>
+
 
 #include "MaxSATFormula.h"
 
@@ -52,6 +54,92 @@ MaxSATFormula *MaxSATFormula::copyMaxSATFormula() {
   copymx->setHardWeight(getHardWeight());
 
   return copymx;
+}
+
+float* MaxSATFormula::calculateBanzhafValues() {
+  float* banzhafValues = new float[nVars()];
+  for (int i = 0; i < nVars(); i++) {
+    banzhafValues[i] = 0;
+  }
+  for (int i = 0; i < nSoft(); i++) {
+    float weight = getSoftClause(i).weight;
+    int clause_size = getSoftClause(i).clause.size();
+    // printf("\n\n%u:%u:%u  \n", (1 << (clause_size - 1)), weight, clause_size);
+    for (int j = 0; j < clause_size; j++) {
+      // printf("%u:%f:%u:%u  ", var(getSoftClause(i).clause[j]), weight / (1 << (clause_size - 1)), weight, clause_size);
+
+      // The sign is opposite to what makes sences...
+      if (sign(getSoftClause(i).clause[j]) == false) {
+        banzhafValues[var(getSoftClause(i).clause[j])] += weight / (1 << (clause_size - 1));
+      } else {
+        banzhafValues[var(getSoftClause(i).clause[j])] -= weight / (1 << (clause_size - 1));
+      }
+    }
+  }
+  return banzhafValues;
+}
+
+
+float* MaxSATFormula::calculateBanzhafValuesOnHardClauses(float hardClauseWeight) {
+  float* banzhafValues = new float[nVars()];
+  for (int i = 0; i < nVars(); i++) {
+    banzhafValues[i] = 0;
+  }
+  for (int i = 0; i < nHard(); i++) {
+    int clause_size = getHardClause(i).clause.size();
+    // printf("\n\n%d:%d:%d  \n", (1 << (clause_size - 1)), hardClauseWeight, clause_size);
+    for (int j = 0; j < clause_size; j++) {
+
+      // The sign is opposite to what makes sences...
+      if (sign(getHardClause(i).clause[j]) == false) {
+        banzhafValues[var(getHardClause(i).clause[j])] += hardClauseWeight / (1 << (clause_size - 1));
+      } else {
+        banzhafValues[var(getHardClause(i).clause[j])] -= hardClauseWeight / (1 << (clause_size - 1));
+      }
+      // printf("%u:", var(getHardClause(i).clause[j]));
+      // printf("%f:", hardClauseWeight / (1 << (clause_size - 1)));
+      // printf("%d:", clause_size);
+      // printf(" %f   ", banzhafValues[var(getHardClause(i).clause[j])]);
+    }
+  }
+  return banzhafValues;
+}
+
+
+float* MaxSATFormula::calculateBanzhafValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft) {
+  float* banzhafValues = calculateBanzhafValues();
+  float* hardClausesBanzhafValues = calculateBanzhafValuesOnHardClauses(hardClauseWeight);
+  if (sameRatio) {
+    float sumSoftValue = 0;
+    float sumHardValue = 0;
+    int notZeroValues = 0;
+    for (int i = 0; i < nVars(); i++) {
+      sumHardValue += abs(hardClausesBanzhafValues[i]);
+      sumSoftValue += abs(banzhafValues[i]);
+      if (banzhafValues[i] != 0 || hardClausesBanzhafValues[i] != 0) {
+        notZeroValues += 1;
+      }
+    }
+    float meanSoftValue = sumSoftValue / notZeroValues;
+    float meanHardValue = sumHardValue / notZeroValues;
+    for (int i = 0; i < nVars(); i++) {
+      banzhafValues[i] = (banzhafValues[i] / meanSoftValue + hardClausesBanzhafValues[i] / meanHardValue) * meanSoftValue;
+    }
+
+  } else {
+    if (preferSoft) {
+      for (int i = 0; i < nVars(); i++) {
+        if (banzhafValues[i] == 0) {
+          banzhafValues[i] = hardClausesBanzhafValues[i];
+        }
+      }
+    } else {
+      for (int i = 0; i < nVars(); i++) {
+        banzhafValues[i] += hardClausesBanzhafValues[i];
+      }
+    }
+  }
+  return banzhafValues;
 }
 
 // Adds a new hard clause to the hard clause database.

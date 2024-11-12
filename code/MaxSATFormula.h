@@ -143,6 +143,12 @@ public:
   uint64_t nTotalLitCount();
   void newVar(); // New variable.
 
+  float* calculateBanzhafValues();
+
+  float* calculateBanzhafValuesOnHardClauses(float hardClauseWeight);
+
+  float* calculateBanzhafValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
+
 
   clauselit **nuwls_clause_lit;
   int *nuwls_clause_lit_count;

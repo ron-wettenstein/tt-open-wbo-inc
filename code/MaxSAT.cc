@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <limits>
 #include <memory>
+#include <cstdlib>
 #include "MaxSAT.h"
 #include "Encoder.h"
 #include "SATLike.h"
@@ -1432,16 +1433,68 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 		 
 		 const double maxBumpVal = (double)Torc::Instance()->GetTargetVarsBumpVal();
 		 const double weightDomain = maxWeight - minWeight;
+     //printf("\nWeight Domain: %f (minWeight = %f ; maxWeight = %f)\n", weightDomain, minWeight, maxWeight);
 		 
 		 for (int i = 0; i < objFunction.size(); i++) {
 			  auto v = var(objFunction[i]);		
 			  const double currWeight = (double)coeffs[i];
 			  
-			  const double bumpVal = weightDomain == 0 ? maxBumpVal + (double)Torc::Instance()->GetRandBump() : (((currWeight - minWeight) / weightDomain) * maxBumpVal + (double)Torc::Instance()->GetRandBump());
-			  
+
+ 			  const double bumpVal = weightDomain == 0 ? maxBumpVal + (double)Torc::Instance()->GetRandBump() : (((currWeight - minWeight) / weightDomain) * maxBumpVal + (double)Torc::Instance()->GetRandBump());
+        // printf("Bumped %u of weight %f by %f (minWeight = %f ; maxWeight = %f)\n", v, currWeight, bumpVal, minWeight, maxWeight);
+		  
+
+        // Banzhaf
+			  // const double bumpVal = weightDomain == 0 ? maxBumpVal + (double)Torc::Instance()->GetRandBump() : (((currWeight - minWeight) / weightDomain) * 3 * (1.0 / (1 << MaxSAT::getSoftClause(i).clause.size())) * maxBumpVal + (double)Torc::Instance()->GetRandBump());
+			  // printf("Bumped %u of weight %f by %f (minWeight = %f ; maxWeight = %f, banzhaf value: %f)\n", v, currWeight, bumpVal, minWeight, maxWeight, (1.0 / (1 << MaxSAT::getSoftClause(i).clause.size())));
+
 			  solver->varBumpActivity(v, bumpVal);
-			  //printf("Bumped %u of weight %f by %f (minWeight = %f ; maxWeight = %f)\n", v, currWeight, bumpVal, minWeight, maxWeight);
+			  
 		  }
+
+
+    bool useBanzhaf = false;
+    float hardClausesWeight = 1;
+    bool sameRatio = false;
+    bool preferSoft = true;
+    bool onlyHardClauses = false;
+    bool doBumping = true;
+    if (useBanzhaf == true) {
+      float* banzhafValues;
+      if (hardClausesWeight == 0) {
+        banzhafValues = maxsat_formula->calculateBanzhafValues();
+      } else {
+        if (onlyHardClauses) {
+          banzhafValues = maxsat_formula->calculateBanzhafValuesOnHardClauses(hardClausesWeight);
+        } else {
+          printf("\n\ncalculateBanzhafValuesOnHardAndSoftClauses \n\n");
+          banzhafValues = maxsat_formula->calculateBanzhafValuesOnHardAndSoftClauses(hardClausesWeight, sameRatio, preferSoft);
+        }
+      }
+      printf("\n\nSet Banzhaf values \n\n");
+      if (maxsat_formula->nVars() < 1000) {
+        printf("\n\nBanzhaf values list:  ");
+        for (int i = 0; i < maxsat_formula->nVars(); i++) {
+          std::cout << banzhafValues[i] << " ";
+        }
+        std::cout << std::endl;
+      }
+
+      for (int v = 0; v < maxsat_formula->nVars(); v++) {
+        if (banzhafValues[v] != 0) {
+          if (doBumping) {
+            if (v < 1000) {
+              printf("Bumped %u of banzhaf value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, banzhafValues[v], (abs(banzhafValues[v]) * 1) / weightDomain, minWeight, maxWeight);
+            }
+            solver->varBumpActivity(v, (abs(banzhafValues[v]) * 1) / weightDomain);
+            // solver->varBumpActivity(v, abs(banzhafValues[v]));
+          }
+
+          solver->setPolarity(v, banzhafValues[v]>0);
+        }
+      }
+    }
+
     }	
 }
 
