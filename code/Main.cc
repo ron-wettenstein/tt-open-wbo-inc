@@ -460,6 +460,7 @@ int main(int argc, char **argv) {
           printf("s UNKNOWN\n"), exit(_ERROR_);
 
     MaxSATFormula *maxsat_formula = new MaxSATFormula();
+    maxsat_formula->fileName = argv[1];
 
     if ((int)formula == _FORMAT_MAXSAT_) {
       parseMaxSATFormula(in, maxsat_formula);
