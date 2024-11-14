@@ -36,6 +36,10 @@
 #include <fstream>
 #include <iostream>
 
+#include <string>
+#include <vector>
+#include <filesystem>  // For std::filesystem::path
+
 #define MAX_CLAUSES 3000000
 
 using namespace openwbo;
@@ -249,7 +253,59 @@ void LinearSUClustering::bmoSearch(){
 	
 	if (Torc::Instance()->GetTargetVarsBumpVal() != 0)
 	{
-		BumpTargets(objFunction, coeffs, solver);
+    if (true) {
+      BumpTargets(objFunction, coeffs, solver);
+    } else {
+
+      // !!! TODO finish this !!!
+
+      cout << "c FilePath: " << maxsat_formula->fileName << endl;
+
+      // Get the input file path and extract the file name
+      std::filesystem::path inputFilePath(maxsat_formula->fileName);
+      std::string fileName = inputFilePath.filename().string();
+      cout << "c FileName: " << fileName << endl;
+
+      // Create the new file path in ~/assignments/
+      std::string newFilePath = std::string(std::getenv("HOME")) + "/assignments/BIA_first_time/" + fileName.substr(0, fileName.size() - 5) + ".txt";
+      cout << "c Assignment Path: " << fileName << endl;
+
+      std::ifstream file(newFilePath);
+      if (!file) {
+        BumpTargets(objFunction, coeffs, solver);
+      } else {
+        // Read the file content (assume one line of 0s and 1s)
+        std::string line;
+        std::getline(file, line);
+        file.close();
+
+        // Initialize a bool array based on the characters in the line
+        vector<int> init_solu(maxsat_formula->nuwls_nvars + 1);
+        init_solu[0] = 0;
+        cout << "c Line size " << line.size() << " vairables: " << maxsat_formula->nuwls_nvars << endl;
+        cout << "c Last char " << line[line.size()] << endl;
+        for (int i = 0; i < line.size(); ++i) {
+            if (line[i] == '1') {
+              // init_solu[i] = 1;
+              init_solu[i + 1] = 1;
+            } else {
+              // init_solu[i] = 0;
+              init_solu[i + 1] = 0;
+            }
+        }
+        if (maxsat_formula->nuwls_nvars < 2000) {
+          std::cout << "Bool array initialized from file contents:\n";
+          for (bool value : init_solu) {
+              std::cout << value;
+          }
+          std::cout << std::endl;
+        }
+        nuwls_solver.init(init_solu);
+        nuwls_solver.opt_unsat_weight = nuwls_solver.total_soft_weight + 1;
+        // TODO what to do with nuwls_solver.opt_unsat_weight ?
+        cout << "c nuwls_solver.opt_unsat_weight " << nuwls_solver.opt_unsat_weight << endl;
+      }
+    }
 	}
 	
   uint64_t currentWeight = orderWeights[0];
@@ -874,21 +930,71 @@ void LinearSUClustering::bmoSearch(){
         nuwls_solver.build_instance(maxsat_formula->nuwls_nvars, maxsat_formula->nuwls_nclauses, maxsat_formula->nuwls_topclauseweight,
                                       maxsat_formula->nuwls_clause_lit, maxsat_formula->nuwls_clause_lit_count, maxsat_formula->nuwls_clause_weight);
 
+        cout << "c Here! At LinearSU Clustering !?!!?" << endl;
+        cout << "c FilePath: " << maxsat_formula->fileName << endl;
         cout << "c build NuWLS instance done!" << endl;
         cout << "c changing to NuWLS solver!!!" << endl;
         nuwls_solver.settings();
-        
-        vector<int> init_solu(maxsat_formula->nuwls_nvars + 1);
-        for (int i = 0; i < maxsat_formula->nuwls_nvars; ++i)
-        {
-          if (solver->model[i] == l_False)
-            init_solu[i + 1] = 0;
-          else
-            init_solu[i + 1] = 1;
+
+        // Get the input file path and extract the file name
+        std::filesystem::path inputFilePath(maxsat_formula->fileName);
+        std::string fileName = inputFilePath.filename().string();
+        cout << "c FileName: " << fileName << endl;
+
+        // Create the new file path in ~/assignments/
+        std::string newFilePath = std::string(std::getenv("HOME")) + "/assignments/BIA_first_time/" + fileName.substr(0, fileName.size() - 5) + ".txt";
+        cout << "c Assignment Path: " << fileName << endl;
+
+        std::ifstream file(newFilePath);
+        if (!file) {
+            cout << "c Error: Could not open file " << newFilePath << endl;
+            vector<int> init_solu(maxsat_formula->nuwls_nvars + 1);
+            for (int i = 0; i < maxsat_formula->nuwls_nvars; ++i)
+            {
+              // TODO add your change here!
+              if (solver->model[i] == l_False)
+                init_solu[i + 1] = 0;
+              else
+                init_solu[i + 1] = 1;
+            }
+            
+            nuwls_solver.init(init_solu);
+            nuwls_solver.opt_unsat_weight = currCost;
+        } else {
+          // Read the file content (assume one line of 0s and 1s)
+          std::string line;
+          std::getline(file, line);
+          file.close();
+
+          // Initialize a bool array based on the characters in the line
+          vector<int> init_solu(maxsat_formula->nuwls_nvars + 1);
+          init_solu[0] = 0;
+          cout << "c Line size " << line.size() << " vairables: " << maxsat_formula->nuwls_nvars << endl;
+          cout << "c Last char " << line[line.size()] << endl;
+          for (int i = 0; i < line.size(); ++i) {
+              if (line[i] == '1') {
+                // init_solu[i] = 1;
+                init_solu[i + 1] = 1;
+              } else {
+                // init_solu[i] = 0;
+                init_solu[i + 1] = 0;
+              }
+          }
+          if (maxsat_formula->nuwls_nvars < 2000) {
+            std::cout << "Bool array initialized from file contents:\n";
+            for (bool value : init_solu) {
+                std::cout << value;
+            }
+            std::cout << std::endl;
+          }
+          nuwls_solver.init(init_solu);
+          nuwls_solver.opt_unsat_weight = nuwls_solver.total_soft_weight + 1;
+          // TODO what to do with nuwls_solver.opt_unsat_weight ?
+          cout << "c nuwls_solver.opt_unsat_weight " << nuwls_solver.opt_unsat_weight << endl;
         }
+
         
-        nuwls_solver.init(init_solu);
-        nuwls_solver.opt_unsat_weight = currCost;
+
         start_timing(); 
         
         const auto nuwlsTimeLimit = Torc::Instance()->GetNuwlsIsExternalTimeLimit() ? Torc::Instance()->GetNuwlsExternalTimeLimit() : nuwls_solver.NUWLS_TIME_LIMIT;
@@ -898,51 +1004,54 @@ void LinearSUClustering::bmoSearch(){
         
         int step = 0;
         // if (nuwls_solver.if_using_neighbor)
+        
+        for (step = 1; step < nuwls_solver.max_flips; ++step)
         {
-          for (step = 1; step < nuwls_solver.max_flips; ++step)
+          if (nuwls_solver.hard_unsat_nb == 0)
           {
-            if (nuwls_solver.hard_unsat_nb == 0)
+            if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
             {
-              if (nuwls_solver.soft_unsat_weight < nuwls_solver.opt_unsat_weight)
-              {
-                nuwls_solver.best_soln_feasible = 1;
-                nuwls_solver.local_soln_feasible = 1;
-                nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
-                time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
+              nuwls_solver.best_soln_feasible = 1;
+              nuwls_solver.local_soln_feasible = 1;
+              nuwls_solver.max_flips = step + nuwls_solver.max_non_improve_flip;
+              time_limit_for_ls = get_runtime() + nuwlsTimeLimit;
 
-                nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
-                cout << "o " << nuwls_solver.opt_unsat_weight << endl;
-                if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), nuwls_solver.opt_unsat_weight);	
-                for (int v = 1; v <= nuwls_solver.num_vars; ++v)
-                {
-                  if (nuwls_solver.cur_soln[v] == 0)
-                    solver->model[v - 1] = l_False;
-                  else
-                    solver->model[v - 1] = l_True;
-                }
-                //best_cost = nuwls_solver.opt_unsat_weight;
-                uint64_t oriCost = nuwls_solver.opt_unsat_weight; // computeOriginalCost(solver->model);
-                // cout << "o " << oriCost << endl;
-                saveModel(solver->model, oriCost);
-                // solver->model.copyTo(best_model);
-				cout << "o " << nuwls_solver.opt_unsat_weight << endl;
-                if (nuwls_solver.opt_unsat_weight == 0)
-                  break;
-              }
-            }
-            int flipvar = nuwls_solver.pick_var();
-            nuwls_solver.flip(flipvar);
-            nuwls_solver.time_stamp[flipvar] = step;
-            if (step % 1000 == 0)
-            {
-              if (get_runtime() > time_limit_for_ls)
+              nuwls_solver.opt_unsat_weight = nuwls_solver.soft_unsat_weight;
+              cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+              if (verbosity > 0) printf("c timeo %u %" PRId64 " \n", (unsigned)ceil(Torc::Instance()->WallTimePassed()), step);	
+              for (int v = 1; v <= nuwls_solver.num_vars; ++v)
               {
-                cout << "c " << get_runtime() << endl;
-                break;
+                if (nuwls_solver.cur_soln[v] == 0)
+                  solver->model[v - 1] = l_False;
+                else
+                  solver->model[v - 1] = l_True;
               }
+              //best_cost = nuwls_solver.opt_unsat_weight;
+              uint64_t oriCost = nuwls_solver.opt_unsat_weight; // computeOriginalCost(solver->model);
+              // cout << "o " << oriCost << endl;
+              // cout << "c before saveModel" << endl;
+              saveModel(solver->model, oriCost);
+              // cout << "c after saveModel" << endl;
+              // solver->model.copyTo(best_model);
+              cout << "o " << nuwls_solver.opt_unsat_weight << endl;
+              if (nuwls_solver.opt_unsat_weight == 0)
+                break;
+            }
+          }
+          int flipvar = nuwls_solver.pick_var();
+          nuwls_solver.flip(flipvar);
+          nuwls_solver.time_stamp[flipvar] = step;
+          if (step % 1000 == 0)
+          {
+            if (get_runtime() > time_limit_for_ls)
+            {
+              cout << "c " << get_runtime() << endl;
+              break;
             }
           }
         }
+        
+        cout << "c before clearing memory" << endl;
         nuwls_solver.free_memory();
         cout << "c nuwls search done!" << endl;
         cout << "c step " << step << " get_runtime " << get_runtime() << " time_limit_for_ls" << time_limit_for_ls << endl;
