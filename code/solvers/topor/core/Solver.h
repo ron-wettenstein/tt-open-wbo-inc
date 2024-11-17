@@ -32,7 +32,7 @@ namespace ToporWrapper
 			inline void budgetOffConflict2() { confBudgets[1] = -1; }
 			inline void budgetOff() { budgetOffConflict(); budgetOffConflict2(); }
 			inline void varBumpActivity(Var v, double inc = 1.0) { topor.BoostScore(T(v), inc); }
-			inline void setPolarity(Var v, double inc = 1.0) { topor.FixPolarity(T(v), inc); }
+			inline void setPolarity(TLit v) { topor.FixPolarity(v); }
 			
 			lbool solveLimited (const vec<Lit>& assumps);
 			bool solve(const vec<Lit>& assumps);			
@@ -53,6 +53,7 @@ namespace ToporWrapper
 			// ************************************
 			// Communicate to Topor before each Solve
 			// ************************************
+			int* initial_polatiry;
 			vec<lbool> _user_phase_saving;
 			std::array<int, 2> confBudgets = {-1, -1};
 			

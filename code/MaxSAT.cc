@@ -1453,14 +1453,17 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 		  }
 
 
-    bool useBanzhaf = false;
+    bool useBanzhaf = true;
     float hardClausesWeight = 1;
-    bool sameRatio = false;
-    bool preferSoft = true;
+    bool sameRatio = true;
+    bool preferSoft = false;
     bool onlyHardClauses = false;
     bool doBumping = true;
+    int bumpingSize = 3;
     if (useBanzhaf == true) {
       float* banzhafValues;
+      // 1 for true, -1 for false, 0 for don't set polarity
+      int* polarityValues = new int[maxsat_formula->nVars()];
       if (hardClausesWeight == 0) {
         banzhafValues = maxsat_formula->calculateBanzhafValues();
       } else {
@@ -1472,7 +1475,7 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
         }
       }
       printf("\n\nSet Banzhaf values \n\n");
-      if (maxsat_formula->nVars() < 1000) {
+      if (maxsat_formula->nVars() < 1500) {
         printf("\n\nBanzhaf values list:  ");
         for (int i = 0; i < maxsat_formula->nVars(); i++) {
           std::cout << banzhafValues[i] << " ";
@@ -1484,15 +1487,25 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
         if (banzhafValues[v] != 0) {
           if (doBumping) {
             if (v < 1000) {
-              printf("Bumped %u of banzhaf value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, banzhafValues[v], (abs(banzhafValues[v]) * 1) / weightDomain, minWeight, maxWeight);
+              printf("Bumped %u of banzhaf value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, banzhafValues[v], (abs(banzhafValues[v]) * bumpingSize) / weightDomain, minWeight, maxWeight);
             }
-            solver->varBumpActivity(v, (abs(banzhafValues[v]) * 1) / weightDomain);
+            solver->varBumpActivity(v, (abs(banzhafValues[v]) * bumpingSize) / weightDomain);
             // solver->varBumpActivity(v, abs(banzhafValues[v]));
           }
+          // int vLiteral = v;
+          // if (banzhafValues[v]<0) {
+          //   vLiteral = -vLiteral;
+          // }
+          // solver->setPolarity(vLiteral);
 
-          solver->setPolarity(v, banzhafValues[v]>0);
+          int vPolarity = 1;
+          if (banzhafValues[v]<0) {
+            vPolarity = -1;
+          }
+          polarityValues[v] = vPolarity;
         }
       }
+      solver->initial_polatiry = polarityValues;
     }
 
     }	

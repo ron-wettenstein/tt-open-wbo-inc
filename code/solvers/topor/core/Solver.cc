@@ -88,7 +88,7 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 		} 
 		polarityOptimisticSet = true;
 	}
-	 
+	static bool firstTime = true;
 	if (Torc::Instance()->GetPolConservative())
 	{
 		for (int v = 0; v < _user_phase_saving.size(); ++v)
@@ -100,7 +100,20 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 				maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
 			}		
 		}
-		
+		if (initial_polatiry != NULL && firstTime) {
+			printf("Set banzhaf initial polarity\n");
+			for (int v = 0; v < nVars(); v++) {
+				if (initial_polatiry[v] == 1) {
+					topor.FixPolarity(T(v));
+					maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
+				} 
+				if (initial_polatiry[v] == -1) {
+					topor.FixPolarity(-T(v));
+					maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
+				}
+			}
+			printf("FINISH Set banzhaf initial polarity\n");
+		}
 		for (int v = _user_phase_saving.size(); v <= maxVarFixedPolarity; ++v)
 		{
 			if (!Torc::Instance()->GetPolOptimistic() || v >= Torc::Instance()->TargetIsVarTarget().size() || !Torc::Instance()->TargetIsVarTarget()[v])
@@ -108,6 +121,10 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 				topor.ClearUserPolarityInfo(T(v));
 			}
 		}	
+	}
+	if (firstTime) {
+		printf("c First Time Polarity!\n");
+		firstTime = false;
 	}
 	
 	TToporReturnVal trv = topor.Solve(tAssumps, make_pair((numeric_limits<double>::max)(), true), confBudget);
@@ -120,6 +137,7 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 
 	latestStat = topor.GetStatStrShort(true);
 	propagations = topor.GetPropagations();
+
 	if (trv == Topor::TToporReturnVal::RET_SAT)
 	{
 		model.growTo(nVars());
