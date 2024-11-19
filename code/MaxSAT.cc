@@ -1452,54 +1452,71 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 			  
 		  }
 
+    if (maxsat_formula->nVars() < 1500) {
+      printf("\n Shapley values list:  ");
+      float* shapleyValues = maxsat_formula->calculateShapleyValuesOnHardAndSoftClauses(1.0, false, false);
+      for (int i = 0; i < maxsat_formula->nVars(); i++) {
+        std::cout << shapleyValues[i] << " ";
+      }
+      std::cout << std::endl;
+    }
 
-    bool useBanzhaf = true;
+    bool useBanzhaf = false;
+    bool useShapley = true;
     float hardClausesWeight = 1;
-    bool sameRatio = true;
+    bool sameRatio = false;
     bool preferSoft = false;
     bool onlyHardClauses = false;
     bool doBumping = true;
-    int bumpingSize = 3;
-    if (useBanzhaf == true) {
-      float* banzhafValues;
+    int bumpingSize = 50;
+    if (useBanzhaf == true || useShapley == true) {
+      float* values;
       // 1 for true, -1 for false, 0 for don't set polarity
       int* polarityValues = new int[maxsat_formula->nVars()];
-      if (hardClausesWeight == 0) {
-        banzhafValues = maxsat_formula->calculateBanzhafValues();
-      } else {
-        if (onlyHardClauses) {
-          banzhafValues = maxsat_formula->calculateBanzhafValuesOnHardClauses(hardClausesWeight);
+      if (useBanzhaf == true) {
+        if (hardClausesWeight == 0) {
+          values = maxsat_formula->calculateBanzhafValues();
         } else {
-          printf("\n\ncalculateBanzhafValuesOnHardAndSoftClauses \n\n");
-          banzhafValues = maxsat_formula->calculateBanzhafValuesOnHardAndSoftClauses(hardClausesWeight, sameRatio, preferSoft);
+          if (onlyHardClauses) {
+            values = maxsat_formula->calculateBanzhafValuesOnHardClauses(hardClausesWeight);
+          } else {
+            printf("\n\ncalculateBanzhafValuesOnHardAndSoftClauses \n\n");
+            values = maxsat_formula->calculateBanzhafValuesOnHardAndSoftClauses(hardClausesWeight, sameRatio, preferSoft);
+          }
         }
       }
-      printf("\n\nSet Banzhaf values \n\n");
+      if (useShapley == true) {
+        if (hardClausesWeight == 0) {
+          values = maxsat_formula->calculateShapleyValues();
+        } else {
+          if (onlyHardClauses) {
+            values = maxsat_formula->calculateShapleyValuesOnHardClauses(hardClausesWeight);
+          } else {
+            printf("\n\ncalculateShapleyValuesOnHardAndSoftClauses \n\n");
+            values = maxsat_formula->calculateShapleyValuesOnHardAndSoftClauses(hardClausesWeight, sameRatio, preferSoft);
+          }
+        }
+      }
+      printf("\n\nSet Banzhaf \\ Shapley values \n\n");
       if (maxsat_formula->nVars() < 1500) {
-        printf("\n\nBanzhaf values list:  ");
+        printf("\n\nBanzhaf \\ Shapley values list:  ");
         for (int i = 0; i < maxsat_formula->nVars(); i++) {
-          std::cout << banzhafValues[i] << " ";
+          std::cout << values[i] << " ";
         }
         std::cout << std::endl;
       }
 
       for (int v = 0; v < maxsat_formula->nVars(); v++) {
-        if (banzhafValues[v] != 0) {
+        if (values[v] != 0) {
           if (doBumping) {
             if (v < 1000) {
-              printf("Bumped %u of banzhaf value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, banzhafValues[v], (abs(banzhafValues[v]) * bumpingSize) / weightDomain, minWeight, maxWeight);
+              printf("Bumped %u of Banzhaf \\ Shapley value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, values[v], (abs(values[v]) * bumpingSize) / weightDomain, minWeight, maxWeight);
             }
-            solver->varBumpActivity(v, (abs(banzhafValues[v]) * bumpingSize) / weightDomain);
+            solver->varBumpActivity(v, (abs(values[v]) * bumpingSize) / weightDomain);
             // solver->varBumpActivity(v, abs(banzhafValues[v]));
           }
-          // int vLiteral = v;
-          // if (banzhafValues[v]<0) {
-          //   vLiteral = -vLiteral;
-          // }
-          // solver->setPolarity(vLiteral);
-
           int vPolarity = 1;
-          if (banzhafValues[v]<0) {
+          if (values[v]<0) {
             vPolarity = -1;
           }
           polarityValues[v] = vPolarity;

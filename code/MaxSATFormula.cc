@@ -154,6 +154,107 @@ float* MaxSATFormula::calculateBanzhafValuesOnHardAndSoftClauses(float hardClaus
   return banzhafValues;
 }
 
+long MaxSATFormula::factorial(const int n)
+{
+    long f = 1;
+    for (int i=1; i<=n; ++i)
+        f *= i;
+    return f;
+}
+
+float MaxSATFormula::shapleyWeight(const int k, const int n) {
+  // this is equvalent to 1 / |s+|*(|s| choose |s+|)    where n = |S| and k=|S+|
+  return (1.0 * factorial(k-1) * factorial(n-k)) / factorial(n);
+}
+
+void MaxSATFormula::addClauseShapleyValues(float* shapleyValues, vec<Lit> &clause, float weight) {
+    int clause_size = clause.size();
+    float shapleyPositiveWeight = 0;
+    float shapleyNegativeWeight = 0;
+    // printf("\n\n%u:%u:%u  \n", (1 << (clause_size - 1)), weight, clause_size);
+    int sPlus = 0;
+    int sMinus = 0;
+    for (int j = 0; j < clause_size; j++) {
+      if (sign(clause[j]) == false) {
+        sMinus++;
+      } else {
+        sPlus++;
+      }
+    }
+
+    for (int j = 0; j < clause_size; j++) {
+      // printf("%u:%f:%u:%u  ", var(getSoftClause(i).clause[j]), weight / (1 << (clause_size - 1)), weight, clause_size);
+
+      // The sign is opposite to what makes sences... 
+      if (sign(clause[j]) == false) {
+        if (shapleyNegativeWeight == 0) {
+          shapleyPositiveWeight = weight * shapleyWeight(sMinus, clause_size);
+        }
+        shapleyValues[var(clause[j])] += shapleyPositiveWeight;
+      } else {
+        if (shapleyPositiveWeight == 0) {
+          shapleyPositiveWeight = weight * shapleyWeight(sPlus, clause_size);
+        }
+        shapleyValues[var(clause[j])] -= shapleyPositiveWeight;
+      }
+    }
+}
+
+
+float* MaxSATFormula::calculateShapleyValues() {
+  float* shapleyValues = new float[nVars()];
+  for (int i = 0; i < nVars(); i++) {
+    shapleyValues[i] = 0;
+  }
+  for (int i = 0; i < nSoft(); i++) {
+    float weight = getSoftClause(i).weight;
+    addClauseShapleyValues(shapleyValues, getSoftClause(i).clause, weight);
+  }
+  return shapleyValues;
+}
+
+float* MaxSATFormula::calculateShapleyValuesOnHardClauses(float hardClauseWeight) {
+  float* shapleyValues = new float[nVars()];
+  for (int i = 0; i < nVars(); i++) {
+    shapleyValues[i] = 0;
+  }
+  for (int i = 0; i < nHard(); i++) {
+    addClauseShapleyValues(shapleyValues, getHardClause(i).clause, hardClauseWeight);
+  }
+  return shapleyValues;
+}
+
+float* MaxSATFormula::calculateShapleyValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft) {
+  float* shapleyValues = calculateShapleyValues();
+  if (nHard() == 0) {
+    hardClauseWeight = 0;
+    sameRatio = false;
+    preferSoft = false;
+  }
+  if (sameRatio) {
+    float weightsSum = 0;
+    for (int i = 0; i < nSoft(); i++) {
+      weightsSum += getSoftClause(i).weight;
+    }
+    hardClauseWeight = (weightsSum * 1.0) / nHard();
+    printf("Hard clause weight %f = %f / %u \n", hardClauseWeight, weightsSum, nHard());
+  }
+  float* hardClausesShapleyValues = calculateShapleyValuesOnHardClauses(hardClauseWeight);
+  if (preferSoft) {
+    for (int i = 0; i < nVars(); i++) {
+      if (shapleyValues[i] == 0) {
+        shapleyValues[i] = hardClausesShapleyValues[i];
+      }
+    }
+  } else {
+    for (int i = 0; i < nVars(); i++) {
+      shapleyValues[i] += hardClausesShapleyValues[i];
+    }
+  }
+  
+  return shapleyValues;
+}
+
 // Adds a new hard clause to the hard clause database.
 void MaxSATFormula::addHardClause(vec<Lit> &lits) {
   total_lit_count += lits.size();

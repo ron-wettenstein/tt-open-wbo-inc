@@ -149,6 +149,15 @@ public:
 
   float* calculateBanzhafValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
 
+  float* calculateShapleyValues();
+
+  float* calculateShapleyValuesOnHardClauses(float hardClauseWeight);
+
+  float* calculateShapleyValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
+  void addClauseShapleyValues(float* shapleyValues, vec<Lit> &clause, float weight);
+  float shapleyWeight(const int k, const int n);
+  long factorial(const int n);
+
 
   clauselit **nuwls_clause_lit;
   int *nuwls_clause_lit_count;
@@ -255,6 +264,8 @@ protected:
   // Format
   //
   int format;
+
+
 };
 
 } // namespace openwbo

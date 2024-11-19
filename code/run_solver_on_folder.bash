@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Ensure log directory exists
-LOG_DIR=~/runnrs_logs/60s/fix_banzhaf_same_ratio_bumping_3
+LOG_DIR=~/runnrs_logs/60s/shapley_soft_hard_weight_1_bumping_50
 mkdir -p "$LOG_DIR"
 
 # Check if folder path is given as an argument
