@@ -265,8 +265,6 @@ protected:
   // Format
   //
   int format;
-
-
 };
 
 } // namespace openwbo
