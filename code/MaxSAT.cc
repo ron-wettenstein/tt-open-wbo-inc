@@ -1469,6 +1469,67 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
     bool onlyHardClauses = false;
     bool doBumping = true;
     int bumpingSize = 50;
+    if (maxsat_formula->gameTheoryOptions != NULL) {
+      printf("Gave a game theory option! \n");
+      printf(maxsat_formula->gameTheoryOptions);
+      printf("\n Use it for initialization!\n\n");
+
+      std::string input = std::string(maxsat_formula->gameTheoryOptions);
+      // Check for "banzhaf" or "shapley"
+      if (input.find("banzhaf") != std::string::npos) {
+          useBanzhaf = true;
+      } else if (input.find("shapley") != std::string::npos) {
+          useShapley = true;
+      }
+
+      // Check for "hard_weight" and extract the value
+      std::size_t hwPos = input.find("hard_weight_");
+      if (hwPos != std::string::npos) {
+          std::size_t start = hwPos + 12;  // Length of "hard_weight_"
+          std::size_t end = input.find("_", start);
+          hardClausesWeight = std::stoi(input.substr(start, end - start));
+      }
+
+      // Check for "bumping" and extract the value
+      std::size_t bumpingPos = input.find("bumping_");
+      if (bumpingPos != std::string::npos) {
+          std::size_t start = bumpingPos + 8;  // Length of "bumping_"
+          std::size_t end = input.find("_", start);
+          bumpingSize = std::stoi(input.substr(start, end - start));
+          doBumping = true;
+      } else {
+        doBumping = false;
+      }
+
+      // Check for "same_weight"
+      if (input.find("same_ratio") != std::string::npos) {
+          sameRatio = true;
+      } else {
+        sameRatio = false;
+      }
+
+      // Check for "only_hard"
+      if (input.find("only_hard") != std::string::npos) {
+          onlyHardClauses = true;
+      } else {
+        onlyHardClauses = false;
+      }
+
+      // Check for "prefer_soft"
+      if (input.find("prefer_soft") != std::string::npos) {
+          preferSoft = true;
+      } else {
+        preferSoft = false;
+      }
+    } else {
+      printf("Use default settings \n");
+    }
+        // Printing the variables with a formatted output
+    printf("Settings:\n");
+    printf("  useBanzhaf:  %s  useShapley:  %s\n", useBanzhaf ? "true" : "false", useShapley ? "true" : "false");
+    printf("  hardClausesWeight: %.2f\n", hardClausesWeight);
+    printf("  sameRatio: %s  preferSoft:  %s  onlyHardClauses:  %s\n", sameRatio ? "true" : "false", preferSoft ? "true" : "false", onlyHardClauses ? "true" : "false");
+    printf("  doBumping: %s   bumpingSize:  %d\n", doBumping ? "true" : "false", bumpingSize);
     if (useBanzhaf == true || useShapley == true) {
       float* values;
       // 1 for true, -1 for false, 0 for don't set polarity

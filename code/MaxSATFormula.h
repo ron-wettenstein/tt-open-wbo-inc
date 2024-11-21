@@ -166,6 +166,7 @@ public:
   uint64_t nuwls_topclauseweight;
   long long *nuwls_clause_weight;
   bool using_nuwls = false;
+  char* gameTheoryOptions = NULL;
 
 
 
