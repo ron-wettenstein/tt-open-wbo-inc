@@ -34,7 +34,6 @@ struct lit
 */
 const int USING_NEIGHBOR_MODE = 3;   // 1. using 2. don't use 3. depends on ins
 
-const float BANZHAF_P = 1.0;   
 
 struct clauselit
 {
@@ -716,15 +715,10 @@ inline void NUWLS::init(vector<int> &init_solution)
         for (int i = 0; i < var_lit_count[v]; ++i)
         {
             int c = var_lit[v][i].clause_num;
-            if (sat_count[c] == 0) {
-                score[v] += clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] += clause_weight[c] * (1 << (clause_lit_count[c] - 1));
-                // score[v] += clause_weight[c];
-            } else if (sat_count[c] == 1 && var_lit[v][i].sense == cur_soln[v]) {
-                score[v] -= clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] -= clause_weight[c] * (1 << (clause_lit_count[c] - 1));
-                // score[v] -= clause_weight[c];
-            }
+            if (sat_count[c] == 0)
+                score[v] += clause_weight[c];
+            else if (sat_count[c] == 1 && var_lit[v][i].sense == cur_soln[v])
+                score[v] -= clause_weight[c];
         }
     }
 
@@ -762,9 +756,7 @@ inline void NUWLS::smooth_weights()
             if (sat_count[clause] == 1)
             {
                 v = sat_var[clause];
-                score[v] += h_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[clause] - 1));
-                // score[v] += h_inc * (1 << (clause_lit_count[clause] - 1));
-                // score[v] += h_inc ;
+                score[v] += h_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -789,9 +781,7 @@ inline void NUWLS::smooth_weights()
             if (sat_count[clause] == 1)
             {
                 v = sat_var[clause];
-                score[v] += 1 * (1.0 / pow(BANZHAF_P, clause_lit_count[clause] - 1));
-                // score[v] += 1 * (1 << (clause_lit_count[clause] - 1));
-                // score[v]++;
+                score[v]++;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -815,9 +805,7 @@ inline void NUWLS::hard_increase_weights()
 
         for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
         {
-            score[v] += h_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-            // score[v] += h_inc * (1 << (clause_lit_count[c] - 1));
-            // score[v] += h_inc;
+            score[v] += h_inc;
             if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
             {
                 already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -849,9 +837,7 @@ inline void NUWLS::soft_increase_weights()
             }
             for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
             {
-                score[v] += s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] += s_inc * (1 << (clause_lit_count[c] - 1));
-                // score[v] += s_inc;
+                score[v] += s_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -877,8 +863,7 @@ inline void NUWLS::soft_increase_weights()
             }
             for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
             {
-                score[v] += s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] += s_inc;
+                score[v] += s_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -909,8 +894,7 @@ inline void NUWLS::hard_smooth_weights()
             if (sat_count[clause] == 1)
             {
                 v = sat_var[clause];
-                score[v] += h_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[clause] - 1));
-                // score[v] += h_inc;
+                score[v] += h_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -941,8 +925,7 @@ inline void NUWLS::soft_smooth_weights()
             if (sat_count[clause] == 1)
             {
                 v = sat_var[clause];
-                score[v] += s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[clause] - 1));
-                // score[v] += s_inc;
+                score[v] += s_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -968,8 +951,7 @@ inline void NUWLS::soft_increase_weights_partial()
             {
                 for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
                 {
-                    score[v] +=  tuned_org_clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                    // score[v] += tuned_org_clause_weight[c];
+                    score[v] += tuned_org_clause_weight[c];
                     if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                     {
                         already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -983,8 +965,7 @@ inline void NUWLS::soft_increase_weights_partial()
                 {
                     if (p->sense == cur_soln[v])
                     {
-                        score[v] -=  tuned_org_clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                        // score[v] -= tuned_org_clause_weight[c];
+                        score[v] -= tuned_org_clause_weight[c];
                         if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
                         {
                             int index = already_in_goodvar_stack[v];
@@ -1009,8 +990,7 @@ inline void NUWLS::soft_increase_weights_partial()
             {
                 for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
                 {
-                    score[v] += s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                    // score[v] += s_inc;
+                    score[v] += s_inc;
                     if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                     {
                         already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -1024,8 +1004,7 @@ inline void NUWLS::soft_increase_weights_partial()
                 {
                     if (p->sense == cur_soln[v])
                     {
-                        score[v] -= s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                        // score[v] -= s_inc;
+                        score[v] -= s_inc;
                         if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
                         {
                             int index = already_in_goodvar_stack[v];
@@ -1063,8 +1042,7 @@ inline void NUWLS::soft_increase_weights_not_partial()
             }
             for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
             {
-                score[v] += s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] += s_inc;
+                score[v] += s_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -1090,8 +1068,7 @@ inline void NUWLS::soft_increase_weights_not_partial()
             }
             for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
             {
-                score[v] += s_inc * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] += s_inc;
+                score[v] += s_inc;
                 if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -1297,8 +1274,7 @@ inline void NUWLS::flip(int flipvar)
             if (sat_count[c] == 2) // sat_count from 1 to 2
             {
                 v = sat_var[c];
-                score[v] += clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[v] += clause_weight[c];
+                score[v] += clause_weight[c];
                 if (score[v] > 0 && -1 == already_in_goodvar_stack[v])
                 {
                     already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -1311,8 +1287,7 @@ inline void NUWLS::flip(int flipvar)
                 for (clen = 0; clen < clause_lit_count[c]; clen++)
                 {
                     v = clause_lit[c][clen].var_num;
-                    score[v] -= clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                    // score[v] -= clause_weight[c];
+                    score[v] -= clause_weight[c];
                     if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
                     {
                         int index = already_in_goodvar_stack[v];
@@ -1335,8 +1310,7 @@ inline void NUWLS::flip(int flipvar)
                     v = clause_lit[c][clen].var_num;
                     if (clause_lit[c][clen].sense == cur_soln[v])
                     {
-                        score[v] -= clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                        // score[v] -= clause_weight[c];
+                        score[v] -= clause_weight[c];
                         if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
                         {
                             int index = already_in_goodvar_stack[v];
@@ -1355,8 +1329,7 @@ inline void NUWLS::flip(int flipvar)
                 for (clen = 0; clen < clause_lit_count[c]; clen++)
                 {
                     v = clause_lit[c][clen].var_num;
-                    score[v] += clause_weight[c] *(1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                    // score[v] += clause_weight[c];
+                    score[v] += clause_weight[c];
                     if (score[v] > 0 && -1 == already_in_goodvar_stack[v])
                     {
                         already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
@@ -1369,7 +1342,6 @@ inline void NUWLS::flip(int flipvar)
     }
 
     // update information of flipvar
-    // TODO - leave unchanged?
     score[flipvar] = -org_flipvar_score;
     if (score[flipvar] > 0 && already_in_goodvar_stack[flipvar] == -1)
     {
@@ -1406,16 +1378,14 @@ inline void NUWLS::flip2(int flipvar)
             ++sat_count[c];
             if (sat_count[c] == 2) // sat_count from 1 to 2
             {
-                score[sat_var[c]] += clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                // score[sat_var[c]] += clause_weight[c];
+                score[sat_var[c]] += clause_weight[c];
             }
             else if (sat_count[c] == 1) // sat_count from 0 to 1
             {
                 sat_var[c] = flipvar; // record the only true lit's var
                 for (clauselit *p = clause_c; (v = p->var_num) != 0; p++)
                 {
-                    score[v] -= clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                    // score[v] -= clause_weight[c];
+                    score[v] -= clause_weight[c];
                 }
                 sat(c);
             }
@@ -1429,8 +1399,7 @@ inline void NUWLS::flip2(int flipvar)
                 {
                     if (p->sense == cur_soln[v])
                     {
-                        score[v] -= clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                        // score[v] -= clause_weight[c];
+                        score[v] -= clause_weight[c];
                         sat_var[c] = v;
                         break;
                     }
@@ -1440,8 +1409,7 @@ inline void NUWLS::flip2(int flipvar)
             {
                 for (clauselit *p = clause_c; (v = p->var_num) != 0; p++)
                 {
-                    score[v] += clause_weight[c] * (1.0 / pow(BANZHAF_P, clause_lit_count[c] - 1));
-                    // score[v] += clause_weight[c];
+                    score[v] += clause_weight[c];
                 }
                 unsat(c);
             } // end else if
@@ -1449,7 +1417,6 @@ inline void NUWLS::flip2(int flipvar)
     }
 
     // update information of flipvar
-    // TODO - Leave untouched?
     score[flipvar] = -org_flipvar_score;
     update_goodvarstack1(flipvar);
 }
