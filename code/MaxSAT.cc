@@ -1452,6 +1452,7 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 			  
 		}
 
+    // Default Game Theory Options, might be override by maxsat_formula->gameTheoryOptions
     bool useBanzhaf = false;
     bool useShapley = true;
     float hardClausesWeight = 1;
@@ -1460,10 +1461,14 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
     bool onlyHardClauses = false;
     bool doBumping = true;
     int bumpingSize = 50;
+    // Initializing the flags above from maxsat_formula->gameTheoryOptions
     if (maxsat_formula->gameTheoryOptions != NULL) {
       printf("Gave a game theory option! \n");
       printf(maxsat_formula->gameTheoryOptions);
       printf("\n Use it for initialization!\n\n");
+
+      // Examples of gameTheoryOptions:
+      // "banzhaf_only_hard_bumping_50", "banzhaf_hard_weight_1_bumping_200", "shapley_hard_weight_1_bumping_10", "shapley_prefer_soft_bumping_2"
 
       std::string input = std::string(maxsat_formula->gameTheoryOptions);
       // Check for "banzhaf" or "shapley"
@@ -1515,17 +1520,19 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
     } else {
       printf("Use default settings \n");
     }
-        // Printing the variables with a formatted output
+    // Printing the variables with a formatted output
     printf("Settings:\n");
     printf("  useBanzhaf:  %s  useShapley:  %s\n", useBanzhaf ? "true" : "false", useShapley ? "true" : "false");
     printf("  hardClausesWeight: %.2f\n", hardClausesWeight);
     printf("  sameRatio: %s  preferSoft:  %s  onlyHardClauses:  %s\n", sameRatio ? "true" : "false", preferSoft ? "true" : "false", onlyHardClauses ? "true" : "false");
     printf("  doBumping: %s   bumpingSize:  %d\n", doBumping ? "true" : "false", bumpingSize);
+
+    // If both useBanzhaf and useShapley are false keep the original logic and don't apply game theory values.
     if (useBanzhaf == true || useShapley == true) {
       float* values;
-      // 1 for true, -1 for false, 0 for don't set polarity
-      int* polarityValues = new int[maxsat_formula->nVars()];
+      int* polarityValues = new int[maxsat_formula->nVars()]; // 1 for true, -1 for false, 0 for don't set polarity
       if (useBanzhaf == true) {
+        // We can use only the values of the soft clauses, only the values of the hard clauses or combine both values.
         if (hardClausesWeight == 0) {
           values = maxsat_formula->calculateBanzhafValues();
         } else {
@@ -1538,6 +1545,7 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
         }
       }
       if (useShapley == true) {
+        // We can use only the values of the soft clauses, only the values of the hard clauses or combine both values.
         if (hardClausesWeight == 0) {
           values = maxsat_formula->calculateShapleyValues();
         } else {
@@ -1549,6 +1557,7 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
           }
         }
       }
+      // If there is small number of variables prints there Shapley/Banzhaf values.
       printf("\n\nSet Banzhaf \\ Shapley values \n\n");
       if (maxsat_formula->nVars() < 1500) {
         printf("\n\nBanzhaf \\ Shapley values list:  ");
@@ -1558,13 +1567,19 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
         std::cout << std::endl;
       }
 
+      // Bump and set polatrity occurding to the Banzhaf/Shapley values
       for (int v = 0; v < maxsat_formula->nVars(); v++) {
         if (values[v] != 0) {
           if (doBumping) {
             if (v < 1000) {
               printf("Bumped %u of Banzhaf \\ Shapley value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, values[v], (abs(values[v]) * bumpingSize) / weightDomain, minWeight, maxWeight);
             }
-            solver->varBumpActivity(v, (abs(values[v]) * bumpingSize) / weightDomain);
+            // TODO maybe solver->varBumpActivity(v >> 1, (abs(values[v]) * bumpingSize) / weightDomain);
+            if (weightDomain == 0) {
+              solver->varBumpActivity(v, abs(values[v]) * bumpingSize);
+            } else {
+              solver->varBumpActivity(v, (abs(values[v]) * bumpingSize) / weightDomain);
+            }
             // solver->varBumpActivity(v, abs(banzhafValues[v]));
           }
           int vPolarity = 1;
@@ -1574,6 +1589,8 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
           polarityValues[v] = vPolarity;
         }
       }
+
+      // Override initial polarity
       solver->initial_polatiry = polarityValues;
     }
 
