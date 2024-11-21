@@ -1450,16 +1450,7 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 
 			  solver->varBumpActivity(v, bumpVal);
 			  
-		  }
-
-    if (maxsat_formula->nVars() < 1500) {
-      printf("\n Shapley values list:  ");
-      float* shapleyValues = maxsat_formula->calculateShapleyValuesOnHardAndSoftClauses(1.0, false, false);
-      for (int i = 0; i < maxsat_formula->nVars(); i++) {
-        std::cout << shapleyValues[i] << " ";
-      }
-      std::cout << std::endl;
-    }
+		}
 
     bool useBanzhaf = false;
     bool useShapley = true;
