@@ -88,7 +88,7 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 		} 
 		polarityOptimisticSet = true;
 	}
-	static bool firstTime = true;
+	static bool firstTime = true; // We using a static vairable to know whether this is the first time the function is called. We will set it to false below.
 	if (Torc::Instance()->GetPolConservative())
 	{
 		for (int v = 0; v < _user_phase_saving.size(); ++v)
@@ -100,8 +100,10 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 				maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
 			}		
 		}
+		// The initial_polarity parameter was initialized using Banzhaf/Shapley values. 
+		// In the code below, only in the first run of the solver, we will set the polarity acocrding to the Banzhaf/Shapley values.
 		if (initial_polatiry != NULL && firstTime) {
-			printf("Set banzhaf initial polarity\n");
+			printf("Set Banzhaf/Shapley initial polarity\n");
 			for (int v = 0; v < nVars(); v++) {
 				if (initial_polatiry[v] == 1) {
 					topor.FixPolarity(T(v));
@@ -112,7 +114,7 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 					maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
 				}
 			}
-			printf("FINISH Set banzhaf initial polarity\n");
+			printf("FINISH Set Banzhaf/Shapley initial polarity\n");
 		}
 		for (int v = _user_phase_saving.size(); v <= maxVarFixedPolarity; ++v)
 		{
@@ -122,6 +124,7 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 			}
 		}	
 	}
+	// Set the static vairable to false, the first iteration is no more.
 	if (firstTime) {
 		printf("c First Time Polarity!\n");
 		firstTime = false;
