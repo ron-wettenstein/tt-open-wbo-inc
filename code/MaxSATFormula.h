@@ -143,17 +143,16 @@ public:
   uint64_t nTotalLitCount();
   void newVar(); // New variable.
 
+  // Functions for calculating Banzhaf values
   float* calculateBanzhafValues();
-
   float* calculateBanzhafValuesOnHardClauses(float hardClauseWeight);
-
   float* calculateBanzhafValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
 
+  // Functions for calculating Shapley values
   float* calculateShapleyValues();
-
   float* calculateShapleyValuesOnHardClauses(float hardClauseWeight);
-
   float* calculateShapleyValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
+  // Helper funcitons used in Shapley values calculation
   void addClauseShapleyValues(float* shapleyValues, vec<Lit> &clause, float weight);
   float shapleyWeight(const int k, const int n);
   long factorial(const int n);
