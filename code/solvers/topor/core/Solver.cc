@@ -137,7 +137,6 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 
 	latestStat = topor.GetStatStrShort(true);
 	propagations = topor.GetPropagations();
-
 	if (trv == Topor::TToporReturnVal::RET_SAT)
 	{
 		model.growTo(nVars());
