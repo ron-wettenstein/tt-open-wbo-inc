@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Used to run the solver on all the files in a certain folder
+# running ./run_solver_on_folder.bash PATH_TO_FOLDER_WITH_MANY_WNCF_FILES
+# Will run tt-open-wbo-inc-IntelSATSolver on all the files in the folder and save their outputs in matching files at the LOG_DIR detailed below
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # Ensure log directory exists
 LOG_DIR=~/runnrs_logs/60s/shapley_soft_hard_weight_1_bumping_50
 mkdir -p "$LOG_DIR"

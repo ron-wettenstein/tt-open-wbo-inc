@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# It basically do what run_solver_on_folder.bash does but few times in a row changing the solver paramters in each iteration.
+#
+# In the options parameter below we detailed several parameters for the game theory values calculation.
+# This bash script is used to run several experiments using several game theory parameters one after the other.
+# The script will iterate over the options, per each one will create an output folder,
+# run all the benchmarks with this option and save the result to a matching files in the output folder. 
+# running ./many_options_together_run_solver_on_folder.bash PATH_TO_FOLDER_WITH_MANY_WNCF_FILES
+# Will run tt-open-wbo-inc-IntelSATSolver on all the files in the folder and on all the game theory options detialed below
+# and save their outputs in matching files at the LOG_DIR detailed below
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # Ensure log directory exists
 LOG_DIR=~/runnrs_logs/auto/60s/
 mkdir -p "$LOG_DIR"
