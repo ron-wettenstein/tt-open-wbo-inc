@@ -56,11 +56,15 @@ MaxSATFormula *MaxSATFormula::copyMaxSATFormula() {
   return copymx;
 }
 
+// Calculate Banzhaf values on the soft clauses using the simplified formula:
+// value_i = sum over all clauses: [ clause_weight/2^(clause_len - 1) if x_i is not negated else -clause_weight/2^(clause_len - 1) ]
 float* MaxSATFormula::calculateBanzhafValues() {
+  // initialed the values and fill them with zeros
   float* banzhafValues = new float[nVars()];
   for (int i = 0; i < nVars(); i++) {
     banzhafValues[i] = 0;
   }
+  // calculate the formula on the soft clauses
   for (int i = 0; i < nSoft(); i++) {
     float weight = getSoftClause(i).weight;
     int clause_size = getSoftClause(i).clause.size();
@@ -80,6 +84,7 @@ float* MaxSATFormula::calculateBanzhafValues() {
 }
 
 
+// Calculate Banzhaf values on the hard clauses, give hardClauseWeight as the weight of all hard clauses. Similar to calculateBanzhafValues()
 float* MaxSATFormula::calculateBanzhafValuesOnHardClauses(float hardClauseWeight) {
   float* banzhafValues = new float[nVars()];
   for (int i = 0; i < nVars(); i++) {
@@ -90,7 +95,7 @@ float* MaxSATFormula::calculateBanzhafValuesOnHardClauses(float hardClauseWeight
     // printf("\n\n%d:%d:%d  \n", (1 << (clause_size - 1)), hardClauseWeight, clause_size);
     for (int j = 0; j < clause_size; j++) {
 
-      // The sign is opposite to what makes sences...
+      // The sign is opposite to what makes sense...
       if (sign(getHardClause(i).clause[j]) == false) {
         banzhafValues[var(getHardClause(i).clause[j])] += hardClauseWeight / (1 << (clause_size - 1));
       } else {
@@ -101,7 +106,10 @@ float* MaxSATFormula::calculateBanzhafValuesOnHardClauses(float hardClauseWeight
   return banzhafValues;
 }
 
-
+// Calculate and merge the Banzhaf values of the soft and the hard clauses.
+// hardClauseWeight - give a constant weight to all the hard clauses.
+// sameRatio - Give a hardClauseWeight so that the weight sum on the soft and the hard clauses will be the same.
+// preferSoft - Will use the banzhaf values of the hard clauses only when the value on the soft clauses is zero.
 float* MaxSATFormula::calculateBanzhafValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft) {
   float* banzhafValues = calculateBanzhafValues();
   if (nHard() == 0) {
@@ -135,6 +143,7 @@ float* MaxSATFormula::calculateBanzhafValuesOnHardAndSoftClauses(float hardClaus
 
 long MaxSATFormula::factorial(const int n)
 {
+    // returns n!
     long f = 1;
     for (int i=1; i<=n; ++i)
         f *= i;
@@ -142,15 +151,19 @@ long MaxSATFormula::factorial(const int n)
 }
 
 float MaxSATFormula::shapleyWeight(const int k, const int n) {
-  // this is equvalent to 1 / |s+|*(|s| choose |s+|)    where n = |S| and k=|S+|
+  // this is equvalent to 1 / |S+|*(|S| choose |S+|)    where n = |S| and k=|S+|
   return (1.0 * factorial(k-1) * factorial(n-k)) / factorial(n);
 }
 
+// Calculate Shapley values on one given clause and add them to the shapleyValues array:
+// value_i = sum over all clauses: [ clause_weight * shapleyWeight(|S+|, |S|) if x_i is not negated else -clause_weight * shapleyWeight(|S-|, |S|) ]
+// where |S| is the clause length, |S+| is number of possitive literals and |S-| is number of negative literals.
 void MaxSATFormula::addClauseShapleyValues(float* shapleyValues, vec<Lit> &clause, float weight) {
     int clause_size = clause.size();
+
+    // Find |S+| and |S-| (the number of possitive and negative literals in the clause)
     float shapleyPositiveWeight = 0;
     float shapleyNegativeWeight = 0;
-    // printf("\n\n%u:%u:%u  \n", (1 << (clause_size - 1)), weight, clause_size);
     int sPlus = 0;
     int sMinus = 0;
     for (int j = 0; j < clause_size; j++) {
@@ -164,7 +177,7 @@ void MaxSATFormula::addClauseShapleyValues(float* shapleyValues, vec<Lit> &claus
     for (int j = 0; j < clause_size; j++) {
       // printf("%u:%f:%u:%u  ", var(getSoftClause(i).clause[j]), weight / (1 << (clause_size - 1)), weight, clause_size);
 
-      // The sign is opposite to what makes sences... 
+      // The sign is opposite to what makes sense... 
       if (sign(clause[j]) == false) {
         if (shapleyNegativeWeight == 0) {
           shapleyPositiveWeight = weight * shapleyWeight(sMinus, clause_size);
@@ -179,7 +192,7 @@ void MaxSATFormula::addClauseShapleyValues(float* shapleyValues, vec<Lit> &claus
     }
 }
 
-
+// Calculate Shapley values on the soft clauses
 float* MaxSATFormula::calculateShapleyValues() {
   float* shapleyValues = new float[nVars()];
   for (int i = 0; i < nVars(); i++) {
@@ -192,6 +205,7 @@ float* MaxSATFormula::calculateShapleyValues() {
   return shapleyValues;
 }
 
+// Calculate Shapley values on the hard clauses, give hardClauseWeight as the weight of all hard clauses. Similar to calculateShapleyValues()
 float* MaxSATFormula::calculateShapleyValuesOnHardClauses(float hardClauseWeight) {
   float* shapleyValues = new float[nVars()];
   for (int i = 0; i < nVars(); i++) {
@@ -203,6 +217,8 @@ float* MaxSATFormula::calculateShapleyValuesOnHardClauses(float hardClauseWeight
   return shapleyValues;
 }
 
+// Calculate and merge the Shapley values of the soft and the hard clauses.
+// Similar to calculateBanzhafValuesOnHardAndSoftClauses.
 float* MaxSATFormula::calculateShapleyValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft) {
   float* shapleyValues = calculateShapleyValues();
   if (nHard() == 0) {
