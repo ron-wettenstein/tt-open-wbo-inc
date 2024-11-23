@@ -1454,7 +1454,7 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 
     // Default Game Theory Options, might be override by maxsat_formula->gameTheoryOptions
     bool useBanzhaf = false;
-    bool useShapley = true;
+    bool useShapley = false;
     float hardClausesWeight = 1;
     bool sameRatio = false;
     bool preferSoft = false;
@@ -1591,7 +1591,8 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
       }
 
       // Override initial polarity
-      solver->initial_polatiry = polarityValues;
+      solver->initial_polarity = polarityValues;
+      solver->hasInitialPolarity = true;
     }
 
     }	

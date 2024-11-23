@@ -102,14 +102,14 @@ lbool Solver::solveLimited(const vec<Lit>& assumps)
 		}
 		// The initial_polarity parameter was initialized using Banzhaf/Shapley values. 
 		// In the code below, only in the first run of the solver, we will set the polarity acocrding to the Banzhaf/Shapley values.
-		if (initial_polatiry != NULL && firstTime) {
+		if (hasInitialPolarity && firstTime) {
 			printf("Set Banzhaf/Shapley initial polarity\n");
 			for (int v = 0; v < nVars(); v++) {
-				if (initial_polatiry[v] == 1) {
+				if (initial_polarity[v] == 1) {
 					topor.FixPolarity(T(v));
 					maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
 				} 
-				if (initial_polatiry[v] == -1) {
+				if (initial_polarity[v] == -1) {
 					topor.FixPolarity(-T(v));
 					maxVarFixedPolarity = std::max(maxVarFixedPolarity, v);
 				}
