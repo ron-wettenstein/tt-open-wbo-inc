@@ -180,9 +180,9 @@ void MaxSATFormula::addClauseShapleyValues(float* shapleyValues, vec<Lit> &claus
       // The sign is opposite to what makes sense... 
       if (sign(clause[j]) == false) {
         if (shapleyNegativeWeight == 0) {
-          shapleyPositiveWeight = weight * shapleyWeight(sMinus, clause_size);
+          shapleyNegativeWeight = weight * shapleyWeight(sMinus, clause_size);
         }
-        shapleyValues[var(clause[j])] += shapleyPositiveWeight;
+        shapleyValues[var(clause[j])] += shapleyNegativeWeight;
       } else {
         if (shapleyPositiveWeight == 0) {
           shapleyPositiveWeight = weight * shapleyWeight(sPlus, clause_size);
