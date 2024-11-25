@@ -194,12 +194,12 @@ void MaxSATFormula::addClauseShapleyValues(std::vector<double> &shapleyValues, v
         if (shapleyNegativeWeight == 0) {
           shapleyNegativeWeight = weight * shapleyWeight(sMinus, clause_size);
         }
-        shapleyValues[var(clause[j])] += shapleyNegativeWeight;
+        shapleyValues[var(clause[j])] -= shapleyNegativeWeight;
       } else {
         if (shapleyPositiveWeight == 0) {
           shapleyPositiveWeight = weight * shapleyWeight(sPlus, clause_size);
         }
-        shapleyValues[var(clause[j])] -= shapleyPositiveWeight;
+        shapleyValues[var(clause[j])] += shapleyPositiveWeight;
       }
     }
 }
