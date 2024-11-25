@@ -52,7 +52,7 @@ namespace ToporWrapper
 			// ************************************
 			// Communicate to Topor before each Solve
 			// ************************************
-			int* initial_polarity;
+			std::vector<int> initial_polarity;
 			bool hasInitialPolarity = false;
 			vec<lbool> _user_phase_saving;
 			std::array<int, 2> confBudgets = {-1, -1};

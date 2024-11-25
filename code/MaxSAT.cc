@@ -1459,8 +1459,9 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
     bool sameRatio = false;
     bool preferSoft = false;
     bool onlyHardClauses = false;
-    bool doBumping = true;
+    bool doBumping = false;
     int bumpingSize = 50;
+    int bumpingConstant = 0;
     // Initializing the flags above from maxsat_formula->gameTheoryOptions
     if (maxsat_formula->gameTheoryOptions != NULL) {
       printf("Gave a game theory option! \n");
@@ -1492,6 +1493,16 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
           std::size_t start = bumpingPos + 8;  // Length of "bumping_"
           std::size_t end = input.find("_", start);
           bumpingSize = std::stoi(input.substr(start, end - start));
+
+          // Check for "bumpingConstant" and extract the value
+          std::size_t bumpingPos = input.find("bumpingConstant_");
+          if (bumpingPos != std::string::npos) {
+              std::size_t start = bumpingPos + 16;  // Length of "bumpingConstant_"
+              std::size_t end = input.find("_", start);
+              bumpingConstant = std::stoi(input.substr(start, end - start));
+              doBumping = true;
+          }
+
           doBumping = true;
       } else {
         doBumping = false;
@@ -1525,43 +1536,30 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
     printf("  useBanzhaf:  %s  useShapley:  %s\n", useBanzhaf ? "true" : "false", useShapley ? "true" : "false");
     printf("  hardClausesWeight: %.2f\n", hardClausesWeight);
     printf("  sameRatio: %s  preferSoft:  %s  onlyHardClauses:  %s\n", sameRatio ? "true" : "false", preferSoft ? "true" : "false", onlyHardClauses ? "true" : "false");
-    printf("  doBumping: %s   bumpingSize:  %d\n", doBumping ? "true" : "false", bumpingSize);
+    printf("  doBumping: %s   bumpingSize:  %d     bumpingConstant:  %d\n", doBumping ? "true" : "false", bumpingSize, bumpingConstant);
 
+
+    printf("Overall %d literals, out of them %d target variables \n\n", maxsat_formula->nVars(), objFunction.size());
     // If both useBanzhaf and useShapley are false keep the original logic and don't apply game theory values.
     if (useBanzhaf == true || useShapley == true) {
-      float* values;
-      int* polarityValues = new int[maxsat_formula->nVars()]; // 1 for true, -1 for false, 0 for don't set polarity
-      if (useBanzhaf == true) {
-        // We can use only the values of the soft clauses, only the values of the hard clauses or combine both values.
-        if (hardClausesWeight == 0) {
-          values = maxsat_formula->calculateBanzhafValues();
+      std::vector<double> values;
+      std::vector<int> polarityValues(maxsat_formula->nVars(), 0); // 1 for true, -1 for false, 0 for don't set polarity
+      if (onlyHardClauses) {
+        if (useBanzhaf == true) {
+          values = maxsat_formula->calculateBanzhafValuesOnHardClauses(hardClausesWeight);
         } else {
-          if (onlyHardClauses) {
-            values = maxsat_formula->calculateBanzhafValuesOnHardClauses(hardClausesWeight);
-          } else {
-            printf("\n\ncalculateBanzhafValuesOnHardAndSoftClauses \n\n");
-            values = maxsat_formula->calculateBanzhafValuesOnHardAndSoftClauses(hardClausesWeight, sameRatio, preferSoft);
-          }
+          values = maxsat_formula->calculateShapleyValuesOnHardClauses(hardClausesWeight);
         }
-      }
-      if (useShapley == true) {
-        // We can use only the values of the soft clauses, only the values of the hard clauses or combine both values.
-        if (hardClausesWeight == 0) {
-          values = maxsat_formula->calculateShapleyValues();
-        } else {
-          if (onlyHardClauses) {
-            values = maxsat_formula->calculateShapleyValuesOnHardClauses(hardClausesWeight);
-          } else {
-            printf("\n\ncalculateShapleyValuesOnHardAndSoftClauses \n\n");
-            values = maxsat_formula->calculateShapleyValuesOnHardAndSoftClauses(hardClausesWeight, sameRatio, preferSoft);
-          }
-        }
+      } else {
+        printf("\n\ncalculateBanzhafOrShpaleyValuesOnHardAndSoftClauses \n\n");
+        values = maxsat_formula->calculateBanzhafOrShpaleyValuesOnHardAndSoftClauses(useBanzhaf, hardClausesWeight, sameRatio, preferSoft);
       }
       // If there is small number of variables prints there Shapley/Banzhaf values.
       printf("\n\nSet Banzhaf \\ Shapley values \n\n");
-      if (maxsat_formula->nVars() < 1500) {
+      int nOrignalVars = maxsat_formula->nVars() - objFunction.size();
+      if (nOrignalVars < 2000) {
         printf("\n\nBanzhaf \\ Shapley values list:  ");
-        for (int i = 0; i < maxsat_formula->nVars(); i++) {
+        for (int i = 0; i < nOrignalVars; i++) {
           std::cout << values[i] << " ";
         }
         std::cout << std::endl;
@@ -1576,9 +1574,9 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
             }
             // TODO maybe solver->varBumpActivity(v >> 1, (abs(values[v]) * bumpingSize) / weightDomain);
             if (weightDomain == 0) {
-              solver->varBumpActivity(v, abs(values[v]) * bumpingSize);
+              solver->varBumpActivity(v, abs(values[v]) * bumpingSize + bumpingConstant);
             } else {
-              solver->varBumpActivity(v, (abs(values[v]) * bumpingSize) / weightDomain);
+              solver->varBumpActivity(v, (abs(values[v]) * bumpingSize) / weightDomain + bumpingConstant);
             }
             // solver->varBumpActivity(v, abs(banzhafValues[v]));
           }

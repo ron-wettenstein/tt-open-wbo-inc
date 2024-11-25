@@ -144,18 +144,18 @@ public:
   void newVar(); // New variable.
 
   // Functions for calculating Banzhaf values
-  float* calculateBanzhafValues();
-  float* calculateBanzhafValuesOnHardClauses(float hardClauseWeight);
-  float* calculateBanzhafValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
+  std::vector<double> calculateBanzhafValues();
+  std::vector<double> calculateBanzhafValuesOnHardClauses(double hardClauseWeight);
+  void addClauseBanzhafValues(std::vector<double> &banzhafValues, vec<Lit> &clause, float weight);
+  std::vector<double> calculateBanzhafOrShpaleyValuesOnHardAndSoftClauses(bool banzhaf, double hardClauseWeight, bool sameRatio, bool preferSoft);
 
   // Functions for calculating Shapley values
-  float* calculateShapleyValues();
-  float* calculateShapleyValuesOnHardClauses(float hardClauseWeight);
-  float* calculateShapleyValuesOnHardAndSoftClauses(float hardClauseWeight, bool sameRatio, bool preferSoft);
+  std::vector<double> calculateShapleyValues();
+  std::vector<double> calculateShapleyValuesOnHardClauses(double hardClauseWeight);
   // Helper funcitons used in Shapley values calculation
-  void addClauseShapleyValues(float* shapleyValues, vec<Lit> &clause, float weight);
-  float shapleyWeight(const int k, const int n);
-  long factorial(const int n);
+  void addClauseShapleyValues(std::vector<double> &shapleyValues, vec<Lit> &clause, float weight);
+  double shapleyWeight(const int k, const int n);
+  double factorial(const int n);
 
 
   clauselit **nuwls_clause_lit;
