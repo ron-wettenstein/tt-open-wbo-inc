@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <limits>
 #include <memory>
+#include <cstdlib>
 #include "MaxSAT.h"
 #include "Encoder.h"
 #include "SATLike.h"
@@ -1449,16 +1450,166 @@ void MaxSAT::BumpTargets(const vec<Lit>& objFunction, const vec<uint64_t>& coeff
 		 
 		 const double maxBumpVal = (double)Torc::Instance()->GetTargetVarsBumpVal();
 		 const double weightDomain = maxWeight - minWeight;
+     //printf("\nWeight Domain: %f (minWeight = %f ; maxWeight = %f)\n", weightDomain, minWeight, maxWeight);
 		 
 		 for (int i = 0; i < objFunction.size(); i++) {
 			  auto v = var(objFunction[i]);		
 			  const double currWeight = (double)coeffs[i];
 			  
-			  const double bumpVal = weightDomain == 0 ? maxBumpVal + (double)Torc::Instance()->GetRandBump() : (((currWeight - minWeight) / weightDomain) * maxBumpVal + (double)Torc::Instance()->GetRandBump());
-			  
+
+ 			  const double bumpVal = weightDomain == 0 ? maxBumpVal + (double)Torc::Instance()->GetRandBump() : (((currWeight - minWeight) / weightDomain) * maxBumpVal + (double)Torc::Instance()->GetRandBump());
+        // printf("Bumped %u of weight %f by %f (minWeight = %f ; maxWeight = %f)\n", v, currWeight, bumpVal, minWeight, maxWeight);
+		  
+
+        // Banzhaf
+			  // const double bumpVal = weightDomain == 0 ? maxBumpVal + (double)Torc::Instance()->GetRandBump() : (((currWeight - minWeight) / weightDomain) * 3 * (1.0 / (1 << MaxSAT::getSoftClause(i).clause.size())) * maxBumpVal + (double)Torc::Instance()->GetRandBump());
+			  // printf("Bumped %u of weight %f by %f (minWeight = %f ; maxWeight = %f, banzhaf value: %f)\n", v, currWeight, bumpVal, minWeight, maxWeight, (1.0 / (1 << MaxSAT::getSoftClause(i).clause.size())));
+
 			  solver->varBumpActivity(v, bumpVal);
-			  //printf("Bumped %u of weight %f by %f (minWeight = %f ; maxWeight = %f)\n", v, currWeight, bumpVal, minWeight, maxWeight);
-		  }
+			  
+		}
+
+    // Default Game Theory Options, might be override by maxsat_formula->gameTheoryOptions
+    bool useBanzhaf = false;
+    bool useShapley = false;
+    float hardClausesWeight = 1;
+    bool sameRatio = false;
+    bool preferSoft = false;
+    bool onlyHardClauses = false;
+    bool doBumping = false;
+    int bumpingSize = 50;
+    int bumpingConstant = 0;
+    // Initializing the flags above from maxsat_formula->gameTheoryOptions
+    if (maxsat_formula->gameTheoryOptions != NULL) {
+      printf("Gave a game theory option! \n");
+      printf(maxsat_formula->gameTheoryOptions);
+      printf("\n Use it for initialization!\n\n");
+
+      // Examples of gameTheoryOptions:
+      // "banzhaf_only_hard_bumping_50", "banzhaf_hard_weight_1_bumping_200", "shapley_hard_weight_1_bumping_10", "shapley_prefer_soft_bumping_2"
+
+      std::string input = std::string(maxsat_formula->gameTheoryOptions);
+      // Check for "banzhaf" or "shapley"
+      if (input.find("banzhaf") != std::string::npos) {
+          useBanzhaf = true;
+      } else if (input.find("shapley") != std::string::npos) {
+          useShapley = true;
+      }
+
+      // Check for "hard_weight" and extract the value
+      std::size_t hwPos = input.find("hard_weight_");
+      if (hwPos != std::string::npos) {
+          std::size_t start = hwPos + 12;  // Length of "hard_weight_"
+          std::size_t end = input.find("_", start);
+          hardClausesWeight = std::stoi(input.substr(start, end - start));
+      }
+
+      // Check for "bumping" and extract the value
+      std::size_t bumpingPos = input.find("bumping_");
+      if (bumpingPos != std::string::npos) {
+          std::size_t start = bumpingPos + 8;  // Length of "bumping_"
+          std::size_t end = input.find("_", start);
+          bumpingSize = std::stoi(input.substr(start, end - start));
+
+          // Check for "bumpingConstant" and extract the value
+          std::size_t bumpingPos = input.find("bumpingConstant_");
+          if (bumpingPos != std::string::npos) {
+              std::size_t start = bumpingPos + 16;  // Length of "bumpingConstant_"
+              std::size_t end = input.find("_", start);
+              bumpingConstant = std::stoi(input.substr(start, end - start));
+              doBumping = true;
+          }
+
+          doBumping = true;
+      } else {
+        doBumping = false;
+      }
+
+      // Check for "same_weight"
+      if (input.find("same_ratio") != std::string::npos) {
+          sameRatio = true;
+      } else {
+        sameRatio = false;
+      }
+
+      // Check for "only_hard"
+      if (input.find("only_hard") != std::string::npos) {
+          onlyHardClauses = true;
+      } else {
+        onlyHardClauses = false;
+      }
+
+      // Check for "prefer_soft"
+      if (input.find("prefer_soft") != std::string::npos) {
+          preferSoft = true;
+      } else {
+        preferSoft = false;
+      }
+    } else {
+      printf("Use default settings \n");
+    }
+    // Printing the variables with a formatted output
+    printf("Settings:\n");
+    printf("  useBanzhaf:  %s  useShapley:  %s\n", useBanzhaf ? "true" : "false", useShapley ? "true" : "false");
+    printf("  hardClausesWeight: %.2f\n", hardClausesWeight);
+    printf("  sameRatio: %s  preferSoft:  %s  onlyHardClauses:  %s\n", sameRatio ? "true" : "false", preferSoft ? "true" : "false", onlyHardClauses ? "true" : "false");
+    printf("  doBumping: %s   bumpingSize:  %d     bumpingConstant:  %d\n", doBumping ? "true" : "false", bumpingSize, bumpingConstant);
+
+
+    printf("Overall %d literals, out of them %d target variables \n\n", maxsat_formula->nVars(), objFunction.size());
+    // If both useBanzhaf and useShapley are false keep the original logic and don't apply game theory values.
+    if (useBanzhaf == true || useShapley == true) {
+      std::vector<double> values;
+      std::vector<int> polarityValues(maxsat_formula->nVars(), 0); // 1 for true, -1 for false, 0 for don't set polarity
+      if (onlyHardClauses) {
+        if (useBanzhaf == true) {
+          values = maxsat_formula->calculateBanzhafValuesOnHardClauses(hardClausesWeight);
+        } else {
+          values = maxsat_formula->calculateShapleyValuesOnHardClauses(hardClausesWeight);
+        }
+      } else {
+        printf("\n\ncalculateBanzhafOrShpaleyValuesOnHardAndSoftClauses \n\n");
+        values = maxsat_formula->calculateBanzhafOrShpaleyValuesOnHardAndSoftClauses(useBanzhaf, hardClausesWeight, sameRatio, preferSoft);
+      }
+      // If there is small number of variables prints there Shapley/Banzhaf values.
+      printf("\n\nSet Banzhaf \\ Shapley values \n\n");
+      int nOrignalVars = maxsat_formula->nVars() - objFunction.size();
+      if (nOrignalVars < 2000) {
+        printf("\n\nBanzhaf \\ Shapley values list:  ");
+        for (int i = 0; i < nOrignalVars; i++) {
+          std::cout << values[i] << " ";
+        }
+        std::cout << std::endl;
+      }
+
+      // Bump and set polatrity occurding to the Banzhaf/Shapley values
+      for (int v = 0; v < maxsat_formula->nVars(); v++) {
+        if (values[v] != 0) {
+          if (doBumping) {
+            if (v < 1000) {
+              printf("Bumped %u of Banzhaf \\ Shapley value %f by %f (minWeight = %f ; maxWeight = %f)\n", v, values[v], (abs(values[v]) * bumpingSize) / weightDomain, minWeight, maxWeight);
+            }
+            // TODO maybe solver->varBumpActivity(v >> 1, (abs(values[v]) * bumpingSize) / weightDomain);
+            if (weightDomain == 0) {
+              solver->varBumpActivity(v, abs(values[v]) * bumpingSize + bumpingConstant);
+            } else {
+              solver->varBumpActivity(v, (abs(values[v]) * bumpingSize) / weightDomain + bumpingConstant);
+            }
+            // solver->varBumpActivity(v, abs(banzhafValues[v]));
+          }
+          int vPolarity = 1;
+          if (values[v]<0) {
+            vPolarity = -1;
+          }
+          polarityValues[v] = vPolarity;
+        }
+      }
+
+      // Override initial polarity
+      solver->initial_polarity = polarityValues;
+      solver->hasInitialPolarity = true;
+    }
+
     }	
 }
 

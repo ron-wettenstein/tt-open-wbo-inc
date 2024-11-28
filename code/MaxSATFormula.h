@@ -143,6 +143,20 @@ public:
   uint64_t nTotalLitCount();
   void newVar(); // New variable.
 
+  // Functions for calculating Banzhaf values
+  std::vector<double> calculateBanzhafValues();
+  std::vector<double> calculateBanzhafValuesOnHardClauses(double hardClauseWeight);
+  void addClauseBanzhafValues(std::vector<double> &banzhafValues, vec<Lit> &clause, float weight);
+  std::vector<double> calculateBanzhafOrShpaleyValuesOnHardAndSoftClauses(bool banzhaf, double hardClauseWeight, bool sameRatio, bool preferSoft);
+
+  // Functions for calculating Shapley values
+  std::vector<double> calculateShapleyValues();
+  std::vector<double> calculateShapleyValuesOnHardClauses(double hardClauseWeight);
+  // Helper funcitons used in Shapley values calculation
+  void addClauseShapleyValues(std::vector<double> &shapleyValues, vec<Lit> &clause, float weight);
+  double shapleyWeight(const int k, const int n);
+  double factorial(const int n);
+
 
   clauselit **nuwls_clause_lit;
   int *nuwls_clause_lit_count;
@@ -151,6 +165,8 @@ public:
   uint64_t nuwls_topclauseweight;
   long long *nuwls_clause_weight;
   bool using_nuwls = false;
+  char* gameTheoryOptions = NULL;  // Game thoery option that will determant how to initialize the first search 
+
 
 
 

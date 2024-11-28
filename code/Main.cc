@@ -473,6 +473,12 @@ int main(int argc, char **argv) {
     }
     gzclose(in);
 
+    // Enable giving a game thoery option that will determant how to initialize the first search 
+    // (using Banzhaf/Shapley, how to marge the hard and soft clauses values, whether to do bumping etc)
+    if (argv[2] != nullptr) {
+      maxsat_formula->gameTheoryOptions = argv[2];
+    }
+
     if ((int)test_rhs) {
       if ((int)test_rhs2) {
         test_encoding(maxsat_formula, (uint64_t)test_rhs, (uint64_t)test_rhs2,
