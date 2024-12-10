@@ -143,6 +143,12 @@ public:
   uint64_t nTotalLitCount();
   void newVar(); // New variable.
 
+  // Functions for calculating Simple values
+  std::vector<double> calculateSimpleValues();
+  std::vector<double> calculateSimpleValuesOnHardClauses(double hardClauseWeight);
+  void addClauseSimpleValues(std::vector<double> &banzhafValues, vec<Lit> &clause, float weight);
+  std::vector<double> calculateSimpleValuesOnHardAndSoftClauses(double hardClauseWeight, bool sameRatio, bool preferSoft);
+
   // Functions for calculating Banzhaf values
   std::vector<double> calculateBanzhafValues();
   std::vector<double> calculateBanzhafValuesOnHardClauses(double hardClauseWeight);
