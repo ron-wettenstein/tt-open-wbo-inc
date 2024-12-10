@@ -23,7 +23,16 @@ if [ -z "$1" ]; then
 fi
 
 # game theory options, will also be the folder in the logs file
-options=("banzhaf_only_hard_bumping_50" "banzhaf_hard_weight_1_bumping_200" "banzhaf_hard_weight_1_bumping_10" "banzhaf_hard_weight_3_bumping_50" "banzhaf_hard_weight_10_bumping_50")
+# options=("banzhaf_hard_weight_1_noBumping" "shapley_hard_weight_1_noBumping" "banzhaf_hard_weight_1_bumping_0_bumpingConstant_1000000" "shapley_hard_weight_1_bumping_0_bumpingConstant_1000000")
+# options=("shapley_hard_weight_1_noBumping" "shapley_prefer_soft")
+# options=("banzhaf_hard_weight_0_noBumping" "shapley_only_hard_noBumping" "shapley_same_ratio_noBumping" "shapley_hard_weight_0_noBumping")
+
+
+# The 120s run:
+# options=("banzhaf_prefer_soft_noBumping" "shapley_prefer_soft_noBumping" "banzhaf_prefer_soft_bumping_50" "shapley_prefer_soft_bumping_50")
+options=("simple_prefer_soft_noBumping")
+
+# options=("banzhaf_only_hard_bumping_50" "banzhaf_hard_weight_1_bumping_200" "banzhaf_hard_weight_1_bumping_10" "banzhaf_hard_weight_3_bumping_50" "banzhaf_hard_weight_10_bumping_50")
 
 # Get the folder path
 FOLDER_PATH="$1"

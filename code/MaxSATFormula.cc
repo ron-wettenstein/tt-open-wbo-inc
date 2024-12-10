@@ -58,6 +58,77 @@ MaxSATFormula *MaxSATFormula::copyMaxSATFormula() {
 }
 
 
+void MaxSATFormula::addClauseSimpleValues(std::vector<double> &simpleValues, vec<Lit> &clause, float weight) {
+    for (int j = 0; j < clause.size(); j++) {
+      if (sign(clause[j]) == false) {
+        simpleValues[var(clause[j])] += weight;
+      } else {
+        simpleValues[var(clause[j])] -= weight;
+      }
+    }
+}
+
+std::vector<double> MaxSATFormula::calculateSimpleValues() {
+  // initialed the values and fill them with zeros
+  std::vector<double> values(nVars(), 0); 
+  for (int i = 0; i < nSoft(); i++) {
+    addClauseSimpleValues(values, getSoftClause(i).clause, getSoftClause(i).weight);
+  }
+  return values;
+}
+
+
+std::vector<double> MaxSATFormula::calculateSimpleValuesOnHardClauses(double hardClauseWeight) {
+    std::vector<double> values(nVars(), 0); 
+    for (int i = 0; i < nHard(); i++) {
+      addClauseSimpleValues(values, getHardClause(i).clause, hardClauseWeight);
+    }
+    return values;
+}
+
+
+std::vector<double> MaxSATFormula::calculateSimpleValuesOnHardAndSoftClauses(double hardClauseWeight, bool sameRatio, bool preferSoft) {
+  if (nHard() == 0) {
+    hardClauseWeight = 0;
+    sameRatio = false;
+    preferSoft = false;
+  }
+
+  std::vector<double> values;
+  values = calculateSimpleValues();
+  if (hardClauseWeight == 0) {
+    return values;
+  }
+  if (sameRatio) {
+    float weightsSum = 0;
+    for (int i = 0; i < nSoft(); i++) {
+      weightsSum += getSoftClause(i).weight;
+    }
+    hardClauseWeight = (weightsSum * 1.0) / nHard();
+    printf("Hard clause weight %f = %f / %u \n", hardClauseWeight, weightsSum, nHard());
+  }
+  std::vector<double> hardClausesValues;
+  hardClausesValues = calculateSimpleValuesOnHardClauses(hardClauseWeight);
+  if (preferSoft) {
+    for (int i = 0; i < nVars(); i++) {
+      if (values[i] == 0) {
+        values[i] = hardClausesValues[i];
+      }
+    }
+  } else {
+    for (int i = 0; i < nVars(); i++) {
+      values[i] += hardClausesValues[i];
+    }
+  }
+  
+  return values;
+}
+
+
+
+
+
+
 void MaxSATFormula::addClauseBanzhafValues(std::vector<double> &banzhafValues, vec<Lit> &clause, float weight) {
     int clause_size = clause.size();
     int clause_size_for_banzhaf = clause_size;
